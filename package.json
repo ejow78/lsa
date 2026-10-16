@@ -1,0 +1,30 @@
+{
+  "name": "ac-emperor-discord-bot",
+  "version": "1.0.0",
+  "description": "Bot de Discord modular para comunidad de Sim Racing en Assetto Corsa (Emperor Server / ACSM)",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "assetto-corsa",
+    "simracing",
+    "discord-bot",
+    "emperor-server",
+    "typescript"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}
