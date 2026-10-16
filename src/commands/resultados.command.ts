@@ -26,7 +26,7 @@ export const resultadosCommand: SlashCommand = {
     if (!latestResult) {
       await interaction.editReply({
         content:
-          '⚠️ No se encontraron resultados recientes con vueltas registradas.',
+          'No se encontraron resultados recientes con vueltas registradas.',
       });
       return;
     }

@@ -32,7 +32,7 @@ export const campeonatoCommand: SlashCommand = {
 
     if (championships.length === 0) {
       await interaction.editReply({
-        content: `⚠️ No se encontraron campeonatos activos en este momento. Puedes revisarlos en: ${championshipsWebUrl}`,
+        content: `No se encontraron campeonatos activos en este momento. Puedes revisarlos en: ${championshipsWebUrl}`,
       });
       return;
     }
@@ -45,11 +45,11 @@ export const campeonatoCommand: SlashCommand = {
         .map((cls) => {
           const pts =
             cls.pointsTopPlaces.length > 0
-              ? `Pts Top 5: \`${cls.pointsTopPlaces.join('-')}\``
+              ? `Puntos Top 5: \`${cls.pointsTopPlaces.join('-')}\``
               : '';
           const extras: string[] = [];
-          if (cls.polePoints > 0) extras.push(`Pole: +${cls.polePoints}`);
-          if (cls.bestLapPoints > 0) extras.push(`VR: +${cls.bestLapPoints}`);
+          if (cls.polePoints > 0) extras.push(`Pole Position: +${cls.polePoints}`);
+          if (cls.bestLapPoints > 0) extras.push(`Vuelta Rápida: +${cls.bestLapPoints}`);
           const extrasStr = extras.length > 0 ? ` (${extras.join(', ')})` : '';
           const driversCount = cls.registeredDrivers.length;
 
@@ -62,14 +62,13 @@ export const campeonatoCommand: SlashCommand = {
           ? champ.events
               .slice(0, 8)
               .map((ev) => {
-                const icon = ev.completed ? '✅' : '🏁';
+                const statusLabel = ev.completed ? '[Completada]' : '[Pendiente]';
                 const layoutStr = ev.trackLayout ? ` (${ev.trackLayout})` : '';
-                return `${icon} **Fecha ${ev.index}:** ${ev.trackName}${layoutStr}`;
+                return `• **Fecha ${ev.index}:** ${ev.trackName}${layoutStr} — *${statusLabel}*`;
               })
               .join('\n')
           : '*Sin fechas cargadas todavía.*';
 
-      // Mostrar lista de pilotos inscriptos si existen
       const allDrivers = champ.classes.flatMap((c) =>
         c.registeredDrivers.map((d) => `• **${d.name}** — *${d.carModel}*`)
       );
@@ -77,11 +76,11 @@ export const campeonatoCommand: SlashCommand = {
       const registrationMode = champ.openEntrants
         ? '🟢 Grilla Abierta (Entrada libre)'
         : champ.signUpEnabled
-          ? '📝 Inscripción por Formulario Web'
-          : '🔒 Lista Cerrada';
+          ? 'Inscripción por Formulario Web'
+          : 'Lista Cerrada';
 
       const embed = new EmbedBuilder()
-        .setTitle(`🏆 ${champ.name}`)
+        .setTitle(champ.name)
         .setURL(champ.url)
         .setDescription(
           `**Modalidad:** ${registrationMode}\n` +
@@ -90,12 +89,12 @@ export const campeonatoCommand: SlashCommand = {
         .setColor(0xf1c40f)
         .addFields(
           {
-            name: '🏎️ Clases y Sistema de Puntaje',
+            name: 'Clases y Sistema de Puntaje',
             value: classesText || 'Clase única',
             inline: false,
           },
           {
-            name: `📅 Calendario de Fechas (${champ.events.length})`,
+            name: `Calendario de Fechas (${champ.events.length})`,
             value: calendarText,
             inline: false,
           }
@@ -105,7 +104,7 @@ export const campeonatoCommand: SlashCommand = {
 
       if (allDrivers.length > 0) {
         embed.addFields({
-          name: `👥 Pilotos Inscriptos (${allDrivers.length})`,
+          name: `Pilotos Inscriptos (${allDrivers.length})`,
           value: allDrivers.slice(0, 15).join('\n'),
           inline: false,
         });
@@ -122,7 +121,6 @@ export const campeonatoCommand: SlashCommand = {
           )
           .setStyle(ButtonStyle.Link)
           .setURL(champ.url)
-          .setEmoji('🏆')
       );
     }
 
@@ -131,7 +129,6 @@ export const campeonatoCommand: SlashCommand = {
         .setLabel('Ver Todos los Campeonatos')
         .setStyle(ButtonStyle.Link)
         .setURL(championshipsWebUrl)
-        .setEmoji('🌐')
     );
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(

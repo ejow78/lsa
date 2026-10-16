@@ -13,7 +13,7 @@ export const linkCommand: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName('link')
     .setDescription(
-      'Devuelve el enlace directo a Content Manager, Live Timing, contraseña y botones 1-Click'
+      'Devuelve el enlace directo a Content Manager, Live Timing, contraseña y botones de acceso'
     ),
 
   async execute(interaction) {
@@ -23,31 +23,31 @@ export const linkCommand: SlashCommand = {
 
     const fields = [
       {
-        name: '🌐 Enlace Web 1-Click (Para entrar o compartir)',
+        name: 'Enlace Web (Para entrar o compartir)',
         value: buttonJoinUrl,
       },
       {
-        name: '📊 Live Timing en Vivo',
+        name: 'Live Timing en Vivo',
         value: liveTimingWebUrl,
       },
       {
-        name: '📋 Protocolo directo Content Manager',
+        name: 'Protocolo directo Content Manager',
         value: `\`\`\`\n${directProtocolLink}\n\`\`\``,
       },
     ];
 
     if (env.AC_SERVER_PASSWORD) {
       fields.unshift({
-        name: '🔑 Contraseña del Servidor',
+        name: 'Contraseña del Servidor',
         value: `\`${env.AC_SERVER_PASSWORD}\``,
       });
     }
 
     const embed = new EmbedBuilder()
-      .setTitle('🔗 Acceso al Servidor — LATAM SimRacing Alliance')
+      .setTitle('Acceso al Servidor — LATAM SimRacing Alliance')
       .setURL(liveTimingWebUrl)
       .setDescription(
-        'Haz clic en los botones de abajo para entrar con **Content Manager** en 1 clic o ver el **Live Timing Web**:'
+        'Haz clic en los botones de abajo para entrar con **Content Manager** o ver el **Live Timing Web**:'
       )
       .addFields(fields)
       .setColor(0x3498db)
@@ -57,13 +57,11 @@ export const linkCommand: SlashCommand = {
       new ButtonBuilder()
         .setLabel('Entrar a Pista')
         .setStyle(ButtonStyle.Link)
-        .setURL(buttonJoinUrl)
-        .setEmoji('🏎️'),
+        .setURL(buttonJoinUrl),
       new ButtonBuilder()
         .setLabel('Live Timing Web')
         .setStyle(ButtonStyle.Link)
         .setURL(liveTimingWebUrl)
-        .setEmoji('📊')
     );
 
     await interaction.reply({

@@ -27,7 +27,7 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
 
   if (!status.online) {
     const offlineEmbed = new EmbedBuilder()
-      .setTitle('🔴 Servidor fuera de línea / Reiniciando')
+      .setTitle('Servidor fuera de línea / Reiniciando')
       .setDescription(
         'No se pudo obtener respuesta del servidor de Assetto Corsa en este momento. El monitor volverá a consultar automáticamente.'
       )
@@ -40,13 +40,11 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
         .setLabel('Entrar a Pista')
         .setStyle(ButtonStyle.Link)
         .setURL(buttonJoinUrl)
-        .setEmoji('🏎️')
         .setDisabled(true),
       new ButtonBuilder()
         .setLabel('Live Timing Web')
         .setStyle(ButtonStyle.Link)
         .setURL(liveTimingWebUrl)
-        .setEmoji('📊')
     );
 
     return { embeds: [offlineEmbed], components: [disabledRow] };
@@ -62,7 +60,7 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
 
   const weatherText =
     status.ambientTemp !== undefined && status.roadTemp !== undefined
-      ? ` • 🌡️ ${status.ambientTemp}°C Amb / ${status.roadTemp}°C Pista`
+      ? ` • ${status.ambientTemp}°C Ambiente / ${status.roadTemp}°C Pista`
       : '';
 
   const passwordLine = env.AC_SERVER_PASSWORD
@@ -76,35 +74,35 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
           .map((driver, idx) => {
             const flag = emperorService.formatNationFlag(driver.nation);
             const flagText = flag ? ` ${flag}` : '';
-            const lapText = driver.bestLap ? ` • ⏱️ \`${driver.bestLap}\`` : '';
+            const lapText = driver.bestLap ? ` • \`${driver.bestLap}\`` : '';
             return `\`${String(idx + 1).padStart(2, '0')}.\`${flagText} **${driver.name}** — *${driver.carModel}*${lapText}`;
           })
           .join('\n')
-      : '*No hay pilotos conectados en este momento. ¡Sé el primero en salir a girar!*';
+      : '*No hay pilotos conectados en este momento.*';
 
   const embed = new EmbedBuilder()
-    .setTitle(`🏁 ${status.serverName}`)
+    .setTitle(status.serverName)
     .setURL(liveTimingWebUrl)
     .setDescription(`**Estado:** ${statusIndicator}${weatherText}${passwordLine}`)
     .setColor(embedColor)
     .addFields(
       {
-        name: '📍 Circuito y Trazado',
+        name: 'Circuito y Trazado',
         value: fullTrackTitle,
         inline: true,
       },
       {
-        name: '⏱️ Sesión Actual',
-        value: `**${status.sessionType}** (${status.timeLeftFormatted} rest.)`,
+        name: 'Sesión Actual',
+        value: `**${status.sessionType}** (${status.timeLeftFormatted} restantes)`,
         inline: true,
       },
       {
-        name: '👥 Pilotos en Pista',
+        name: 'Pilotos en Pista',
         value: `**${status.connectedDriversCount}/${status.maxClients}**`,
         inline: true,
       },
       {
-        name: `🏎️ Lista de Pilotos (${status.connectedDriversCount})`,
+        name: `Lista de Pilotos (${status.connectedDriversCount})`,
         value: driversListText,
         inline: false,
       }
@@ -120,13 +118,11 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
     new ButtonBuilder()
       .setLabel('Entrar a Pista')
       .setStyle(ButtonStyle.Link)
-      .setURL(buttonJoinUrl)
-      .setEmoji('🏎️'),
+      .setURL(buttonJoinUrl),
     new ButtonBuilder()
       .setLabel('Live Timing Web')
       .setStyle(ButtonStyle.Link)
       .setURL(liveTimingWebUrl)
-      .setEmoji('📊')
   );
 
   return { embeds: [embed], components: [row] };
@@ -139,36 +135,33 @@ export function buildSessionResultMessagePayload(result: SessionResultSummary): 
   embeds: [EmbedBuilder];
   components: [ActionRowBuilder<ButtonBuilder>];
 } {
-  const medals = ['🥇', '🥈', '🥉'];
-
   const standingsText = result.standings
     .slice(0, 15)
-    .map((entry, idx) => {
-      const prefix =
-        idx < 3
-          ? medals[idx]
-          : `\`${String(entry.position).padStart(2, '0')}.\``;
+    .map((entry) => {
+      const prefix = `\`${String(entry.position).padStart(2, '0')}.\``;
       const gapStr = entry.gapFormatted ? ` (${entry.gapFormatted})` : '';
+      const lapsWord = entry.numLaps === 1 ? 'vuelta' : 'vueltas';
+      const incWord = entry.incidentsCount === 1 ? 'incidente' : 'incidentes';
       const incStr =
-        entry.incidentsCount > 0 ? ` • 💥 ${entry.incidentsCount} inc.` : '';
-      return `${prefix} **${entry.driverName}** — *${entry.carModel}*\n└ ⏱️ \`${entry.bestLapFormatted}\`${gapStr} • 🔄 ${entry.numLaps} vtas${incStr}`;
+        entry.incidentsCount > 0 ? ` • ${entry.incidentsCount} ${incWord}` : '';
+      return `${prefix} **${entry.driverName}** — *${entry.carModel}*\n└ \`${entry.bestLapFormatted}\`${gapStr} • ${entry.numLaps} ${lapsWord}${incStr}`;
     })
     .join('\n');
 
   const fastestLapLine = result.fastestLap
-    ? `\n💜 **Vuelta Rápida:** **${result.fastestLap.driverName}** (\`${result.fastestLap.lapFormatted}\` — *${result.fastestLap.carModel}*)`
+    ? `\n**Vuelta Rápida:** **${result.fastestLap.driverName}** (\`${result.fastestLap.lapFormatted}\` — *${result.fastestLap.carModel}*)`
     : '';
 
   const embed = new EmbedBuilder()
-    .setTitle(`🏁 Resultados de ${result.sessionType} — ${result.trackName}`)
+    .setTitle(`Resultados de ${result.sessionType} — ${result.trackName}`)
     .setURL(result.webUrl)
     .setDescription(
-      `📅 **Fecha:** ${result.dateFormatted}\n` +
-        `🔄 **Vueltas totales:** ${result.totalLaps} • 💥 **Incidentes:** ${result.totalIncidents}${fastestLapLine}`
+      `**Fecha:** ${result.dateFormatted}\n` +
+        `**Vueltas totales:** ${result.totalLaps} • **Incidentes:** ${result.totalIncidents}${fastestLapLine}`
     )
     .setColor(0x9b59b6)
     .addFields({
-      name: `📊 Clasificación (${result.standings.length} registros)`,
+      name: `Clasificación (${result.standings.length} registros)`,
       value: standingsText || '*Sin tiempos registrados.*',
       inline: false,
     })
@@ -180,13 +173,11 @@ export function buildSessionResultMessagePayload(result: SessionResultSummary): 
     new ButtonBuilder()
       .setLabel('Ver Telemetría Completa en Web')
       .setStyle(ButtonStyle.Link)
-      .setURL(result.webUrl)
-      .setEmoji('📈'),
+      .setURL(result.webUrl),
     new ButtonBuilder()
       .setLabel('Todos los Resultados')
       .setStyle(ButtonStyle.Link)
       .setURL(emperorService.getResultsWebUrl())
-      .setEmoji('🗂️')
   );
 
   return { embeds: [embed], components: [row] };

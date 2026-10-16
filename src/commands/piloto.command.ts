@@ -52,17 +52,22 @@ export const pilotoCommand: SlashCommand = {
     }
 
     const carsLines = profile.carsUsed.map((c) => {
-      return `• **${c.carModel}** — \`${c.bestLapFormatted}\` (${c.lapsCount} vtas • ${c.cleanLapsCount} limpias)`;
+      const lapsWord = c.lapsCount === 1 ? 'vuelta' : 'vueltas';
+      const cleanWord = c.cleanLapsCount === 1 ? 'limpia' : 'limpias';
+      return `• **${c.carModel}** — \`${c.bestLapFormatted}\` (${c.lapsCount} ${lapsWord} • ${c.cleanLapsCount} ${cleanWord})`;
     });
 
     const sectorsText = profile.bestSectorsFormatted
-      ? `S1: \`${profile.bestSectorsFormatted[0]}\` • S2: \`${profile.bestSectorsFormatted[1]}\` • S3: \`${profile.bestSectorsFormatted[2]}\``
+      ? `Sector 1: \`${profile.bestSectorsFormatted[0]}\` • Sector 2: \`${profile.bestSectorsFormatted[1]}\` • Sector 3: \`${profile.bestSectorsFormatted[2]}\``
       : 'Sin parciales';
 
     const cleanRate =
       profile.totalLaps > 0
         ? Math.round((profile.cleanLaps / profile.totalLaps) * 100)
         : 100;
+
+    const totalLapsWord = profile.totalLaps === 1 ? 'vuelta' : 'vueltas';
+    const totalIncWord = profile.totalIncidents === 1 ? 'incidente' : 'incidentes';
 
     const embed = new EmbedBuilder()
       .setTitle(`Telemetría de Piloto — ${profile.driverName}`)
@@ -79,14 +84,14 @@ export const pilotoCommand: SlashCommand = {
           name: 'Vuelta Óptima',
           value: profile.optimalLapFormatted
             ? `**\`${profile.optimalLapFormatted}\`**\n*(${sectorsText})*`
-            : 'N/D',
+            : 'No disponible',
           inline: true,
         },
         {
           name: 'Estadísticas de Pista',
           value:
-            `**${profile.totalLaps}** vueltas (${cleanRate}% limpias)\n` +
-            `**${profile.totalIncidents}** incidentes`,
+            `**${profile.totalLaps}** ${totalLapsWord} (${cleanRate}% limpias)\n` +
+            `**${profile.totalIncidents}** ${totalIncWord}`,
           inline: true,
         },
         {

@@ -40,38 +40,27 @@ export const tiemposCommand: SlashCommand = {
     if (!hotlaps || hotlaps.entries.length === 0) {
       await interaction.editReply({
         content:
-          '⚠️ Todavía no se encontraron vueltas limpias registradas en las sesiones recientes.',
+          'Todavía no se encontraron vueltas limpias registradas en las sesiones recientes.',
       });
       return;
     }
 
-    const medals = ['🥇', '🥈', '🥉'];
-    const leaderboardLines = hotlaps.entries.slice(0, 15).map((entry, idx) => {
-      const prefix =
-        idx < 3
-          ? medals[idx]
-          : `\`${String(entry.rank).padStart(2, '0')}.\``;
-      const tyreStr = entry.tyre ? ` • 🛞 \`${entry.tyre}\`` : '';
+    const leaderboardLines = hotlaps.entries.slice(0, 15).map((entry) => {
+      const prefix = `\`${String(entry.rank).padStart(2, '0')}.\``;
+      const tyreStr = entry.tyre ? ` • Neumático: \`${entry.tyre}\`` : '';
+      const lapsWord = entry.lapsCount === 1 ? 'vuelta' : 'vueltas';
       return (
         `${prefix} **${entry.driverName}** — *${entry.carModel}*\n` +
-        `└ ⏱️ **\`${entry.bestLapFormatted}\`** (${entry.gapFormatted})${tyreStr} • 🔄 ${entry.lapsCount} vtas`
+        `└ **\`${entry.bestLapFormatted}\`** (${entry.gapFormatted})${tyreStr} • ${entry.lapsCount} ${lapsWord}`
       );
     });
 
-    const modeTitle = byCar
-      ? 'Mejor vuelta por Piloto + Auto'
-      : 'Mejor vuelta absoluta por Piloto';
-
     const embed = new EmbedBuilder()
-      .setTitle(`⏱️ Ranking de Hotlaps — ${hotlaps.trackName}`)
+      .setTitle(`Ranking de Hotlaps — ${hotlaps.trackName}`)
       .setURL(emperorService.getResultsWebUrl())
-      .setDescription(
-        `📊 **Modo:** ${modeTitle}\n` +
-          `🗂️ **Sesiones analizadas:** últimas ${hotlaps.sessionsAnalyzed} sesiones del circuito`
-      )
       .setColor(0xe67e22)
       .addFields({
-        name: `🏆 Top Tiempos (${hotlaps.entries.length})`,
+        name: `Top Tiempos (${hotlaps.entries.length})`,
         value: leaderboardLines.join('\n').slice(0, 1024),
         inline: false,
       })
@@ -85,13 +74,11 @@ export const tiemposCommand: SlashCommand = {
       new ButtonBuilder()
         .setLabel('Entrar a Pista')
         .setStyle(ButtonStyle.Link)
-        .setURL(emperorService.getContentManagerJoinButtonUrl())
-        .setEmoji('🏎️'),
+        .setURL(emperorService.getContentManagerJoinButtonUrl()),
       new ButtonBuilder()
         .setLabel('Historial de Sesiones')
         .setStyle(ButtonStyle.Link)
         .setURL(emperorService.getResultsWebUrl())
-        .setEmoji('🗂️')
     );
 
     await interaction.editReply({

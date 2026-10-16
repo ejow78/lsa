@@ -589,7 +589,7 @@ export class EmperorService {
           let gapFormatted = '';
           if (bestLapMs > 0 && fastestLapMs > 0) {
             if (bestLapMs === fastestLapMs) {
-              gapFormatted = '💜 VR';
+              gapFormatted = 'Vuelta Rápida';
               if (!fastestLapInfo) {
                 fastestLapInfo = {
                   driverName,
@@ -755,7 +755,7 @@ export class EmperorService {
     const entries: HotlapEntry[] = validRecords.map((rec, idx) => {
       const diffSec =
         idx === 0
-          ? '👑 Récord'
+          ? 'Récord'
           : `+${((rec.bestLapMs - fastestMs) / 1000).toFixed(3)}s`;
 
       return {

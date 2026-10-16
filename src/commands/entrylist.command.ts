@@ -33,12 +33,11 @@ export const entrylistCommand: SlashCommand = {
 
     if (!entryList.online) {
       await interaction.editReply({
-        content: '🔴 El servidor no responde en este momento. Intenta nuevamente en unos segundos.',
+        content: 'El servidor no responde en este momento. Intenta nuevamente en unos segundos.',
       });
       return;
     }
 
-    // Agrupar autos asignados por piloto para que se lea más limpio y ordenado
     const driversMap = new Map<
       string,
       { nation: string; isConnected: boolean; cars: string[] }
@@ -71,20 +70,20 @@ export const entrylistCommand: SlashCommand = {
 
     const freeLines = entryList.freeSlots.map(
       (slot) =>
-        `🔓 \`Slot #${String(slot.slotNumber).padStart(2, '0')}\` — **${slot.carModel}**${slot.skin ? ` *(${slot.skin})*` : ''}`
+        `• \`Slot #${String(slot.slotNumber).padStart(2, '0')}\` — **${slot.carModel}**${slot.skin ? ` *(${slot.skin})*` : ''}`
     );
 
     const embed = new EmbedBuilder()
-      .setTitle(`📋 Entry List — ${entryList.serverName}`)
+      .setTitle(`Entry List — ${entryList.serverName}`)
       .setURL(liveTimingWebUrl)
       .setDescription(
-        `📍 **Circuito:** ${entryList.trackName}\n` +
-          `🏎️ **Slots Totales:** ${entryList.totalSlots} (${entryList.assignedSlots.length} asignados • **${entryList.freeSlots.length} libres**)`
+        `**Circuito:** ${entryList.trackName}\n` +
+          `**Slots Totales:** ${entryList.totalSlots} (${entryList.assignedSlots.length} asignados • **${entryList.freeSlots.length} libres**)`
       )
       .setColor(entryList.freeSlots.length > 0 ? 0x3498db : 0xe67e22)
       .addFields(
         {
-          name: `👤 Autos Asignados a Pilotos (${entryList.assignedSlots.length} slots)`,
+          name: `Autos Asignados a Pilotos (${entryList.assignedSlots.length} slots)`,
           value:
             assignedLines.length > 0
               ? assignedLines.join('\n').slice(0, 1024)
@@ -92,7 +91,7 @@ export const entrylistCommand: SlashCommand = {
           inline: false,
         },
         {
-          name: `🔓 Autos Libres para Entrar (${entryList.freeSlots.length} slots)`,
+          name: `Autos Libres para Entrar (${entryList.freeSlots.length} slots)`,
           value:
             freeLines.length > 0
               ? freeLines.join('\n').slice(0, 1024)
@@ -111,13 +110,11 @@ export const entrylistCommand: SlashCommand = {
       new ButtonBuilder()
         .setLabel('Entrar a Pista')
         .setStyle(ButtonStyle.Link)
-        .setURL(buttonJoinUrl)
-        .setEmoji('🏎️'),
+        .setURL(buttonJoinUrl),
       new ButtonBuilder()
         .setLabel('Live Timing Web')
         .setStyle(ButtonStyle.Link)
         .setURL(liveTimingWebUrl)
-        .setEmoji('📊')
     );
 
     await interaction.editReply({

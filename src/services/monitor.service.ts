@@ -274,11 +274,11 @@ export class MonitorService {
       .join(', ');
 
     const alertEmbed = new EmbedBuilder()
-      .setTitle('🔥 ¡Se armó acción en pista!')
+      .setTitle('¡Se armó acción en pista!')
       .setURL(liveTimingWebUrl)
       .setDescription(
         `Ya hay **${status.connectedDriversCount}/${status.maxClients}** pilotos girando en **${status.trackName}** (${status.sessionType}).\n\n` +
-          `👥 **En pista:** ${driversNames || 'Varios pilotos'}`
+          `**En pista:** ${driversNames || 'Varios pilotos'}`
       )
       .setColor(0x2ecc71)
       .setTimestamp(new Date());
@@ -291,18 +291,16 @@ export class MonitorService {
       new ButtonBuilder()
         .setLabel('Entrar a Pista')
         .setStyle(ButtonStyle.Link)
-        .setURL(buttonJoinUrl)
-        .setEmoji('🚀'),
+        .setURL(buttonJoinUrl),
       new ButtonBuilder()
         .setLabel('Live Timing Web')
         .setStyle(ButtonStyle.Link)
         .setURL(liveTimingWebUrl)
-        .setEmoji('📊')
     );
 
     try {
       await (alertChannel as TextChannel).send({
-        content: `🔔 <@&${env.ALERT_ROLE_ID}> ¡Hay gente girando en el servidor!`,
+        content: `<@&${env.ALERT_ROLE_ID}> ¡Hay gente girando en el servidor!`,
         embeds: [alertEmbed],
         components: [row],
         allowedMentions: {
