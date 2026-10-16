@@ -172,7 +172,7 @@ export class LiveTimingService {
     elapsedSeconds: 0,
     ambientTemp: 20,
     roadTemp: 26,
-    joinUrl: emperorService.getJoinLink(),
+    joinUrl: emperorService.getContentManagerJoinButtonUrl(),
     password: env.AC_SERVER_PASSWORD || '',
     mapImageUrl: '',
     previewImageUrl: '',
@@ -201,6 +201,33 @@ export class LiveTimingService {
     this.detailsPollTimer = setInterval(() => {
       void this.pollHttpDetails();
     }, 10000);
+  }
+
+  public stop(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.detailsPollTimer) {
+      clearInterval(this.detailsPollTimer);
+      this.detailsPollTimer = null;
+    }
+    if (this.ws) {
+      try {
+        this.ws.close();
+      } catch {
+        // Ignore
+      }
+      this.ws = null;
+    }
+  }
+
+  private cleanCarModel(carModel: string): string {
+    if (!carModel) return 'Auto';
+    return carModel
+      .replace(/^ks_/, '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
   public getState(): LiveTelemetryState {
@@ -285,16 +312,14 @@ export class LiveTimingService {
 
   private async pollHttpDetails(): Promise<void> {
     try {
-      const status = await emperorService.getServerStatus();
+      const status = await emperorService.getLiveStatus();
       this.state.serverName = status.serverName;
-      this.state.ambientTemp = status.ambientTemp;
-      this.state.roadTemp = status.roadTemp;
-      this.state.sessionType = status.sessionType;
+      if (typeof status.ambientTemp === 'number') this.state.ambientTemp = status.ambientTemp;
+      if (typeof status.roadTemp === 'number') this.state.roadTemp = status.roadTemp;
 
-      if (!this.state.trackId && status.track) {
-        const parts = status.track.split('/');
-        this.state.trackId = parts[0] || status.track;
-        this.state.trackLayout = parts[1] || '';
+      if (!this.state.trackId && status.rawTrackId) {
+        this.state.trackId = status.rawTrackId;
+        this.state.trackLayout = status.trackConfig || '';
         this.updateTrackUrls();
       }
     } catch {
@@ -520,7 +545,7 @@ export class LiveTimingService {
           initials: carInfo.DriverInitials || (carInfo.DriverName || 'P').slice(0, 3).toUpperCase(),
           raceNumber: Number(carInfo.RaceNumber ?? 0),
           carModel,
-          carName: carInfo.CarName || emperorService.formatCarName(carModel),
+          carName: carInfo.CarName || this.cleanCarModel(carModel),
           tyres: carInfo.Tyres || '-',
           position: Number(d.Position && d.Position !== 255 ? d.Position : idx + 1),
           isInPits: Boolean(d.IsInPits),
@@ -584,7 +609,7 @@ export class LiveTimingService {
               guid,
               name: d.CarInfo.DriverName || 'Piloto',
               carModel,
-              carName: cs?.CarName || d.CarInfo.CarName || emperorService.formatCarName(carModel),
+              carName: cs?.CarName || d.CarInfo.CarName || this.cleanCarModel(carModel),
               tyres: cs?.TyreBestLap || d.CarInfo.Tyres || '-',
               bestLapMs: bestLapNs > 0 ? Math.round(bestLapNs / 1_000_000) : 0,
               bestLapFormatted: this.formatNsLap(bestLapNs),
@@ -629,7 +654,7 @@ export class LiveTimingService {
         initials: msg.DriverInitials || existing?.initials || 'PIL',
         raceNumber: Number(msg.RaceNumber ?? existing?.raceNumber ?? 0),
         carModel,
-        carName: msg.CarName || existing?.carName || emperorService.formatCarName(carModel),
+        carName: msg.CarName || existing?.carName || this.cleanCarModel(carModel),
         tyres: msg.Tyres || existing?.tyres || '-',
         position: existing?.position || idx + 1,
         isInPits: existing?.isInPits ?? true,
