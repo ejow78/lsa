@@ -3,6 +3,7 @@ import { env } from '../config/env.js';
 export interface ConnectedDriver {
   name: string;
   carModel: string;
+  nation?: string;
   bestLap?: string;
 }
 
@@ -15,13 +16,15 @@ export interface ServerLiveStatus {
   timeLeftFormatted: string;
   connectedDriversCount: number;
   maxClients: number;
+  ambientTemp?: number;
+  roadTemp?: number;
   drivers: ConnectedDriver[];
   updatedAt: Date;
 }
 
 /**
- * Interfaces flexibles para soportar tanto `/live-timings.json` de Emperor Server (ACSM)
- * como el endpoint nativo `/INFO` de Assetto Corsa Dedicated Server.
+ * Interfaces flexibles para soportar `/api/details` (Emperor CM Wrapper),
+ * `/live-timings.json` y `/INFO` + `/JSON|`.
  */
 interface RawEmperorLiveTimings {
   ServerName?: string;
@@ -38,6 +41,11 @@ interface RawEmperorLiveTimings {
   maxclients?: number;
   Clients?: number;
   clients?: number;
+  ambientTemperature?: number;
+  roadTemperature?: number;
+  players?: {
+    Cars?: RawEmperorDriver[];
+  };
   ConnectedDrivers?: Record<string, RawEmperorDriver> | RawEmperorDriver[];
   Drivers?: Record<string, RawEmperorDriver> | RawEmperorDriver[];
   Cars?: RawEmperorDriver[];
@@ -53,6 +61,7 @@ interface RawEmperorDriver {
   DriverName?: string;
   Driver?: string;
   name?: string;
+  DriverNation?: string;
   CarModel?: string;
   Model?: string;
   car?: string;
@@ -67,14 +76,22 @@ export class EmperorService {
    * Genera el enlace directo del protocolo nativo de Content Manager (acmanager://).
    */
   public getContentManagerProtocolLink(): string {
-    return `acmanager://race/online/join?ip=${env.EMPEROR_IP_OR_DOMAIN}&httpPort=${env.joinHttpPort}`;
+    const base = `acmanager://race/online/join?ip=${env.EMPEROR_IP_OR_DOMAIN}&httpPort=${env.joinHttpPort}`;
+    if (env.AC_SERVER_PASSWORD) {
+      return `${base}&password=${encodeURIComponent(env.AC_SERVER_PASSWORD)}`;
+    }
+    return base;
   }
 
   /**
    * Genera el enlace HTTPS oficial de redirección de Content Manager (compatible con botones de Discord).
    */
   public getContentManagerJoinButtonUrl(): string {
-    return `https://acstuff.ru/s/q:race/online/join?ip=${env.EMPEROR_IP_OR_DOMAIN}&httpPort=${env.joinHttpPort}`;
+    const base = `https://acstuff.ru/s/q:race/online/join?httpPort=${env.joinHttpPort}&ip=${env.EMPEROR_IP_OR_DOMAIN}`;
+    if (env.AC_SERVER_PASSWORD) {
+      return `${base}&password=${encodeURIComponent(env.AC_SERVER_PASSWORD)}`;
+    }
+    return base;
   }
 
   /**
@@ -91,8 +108,8 @@ export class EmperorService {
       : `http://${env.EMPEROR_IP_OR_DOMAIN}:${env.EMPEROR_HTTP_PORT}`;
 
     const candidateEndpoints = [
+      `${baseUrl}/api/details`,
       `${baseUrl}/live-timings.json`,
-      `${baseUrl}/api/live-timings/state.json`,
       `${baseUrl}/INFO`,
     ];
 
@@ -111,14 +128,13 @@ export class EmperorService {
         const rawData = (await response.json()) as RawEmperorLiveTimings;
         return this.normalizeEmperorResponse(rawData);
       } catch {
-        // Intentamos con el siguiente endpoint candidato si falla
         continue;
       }
     }
 
     return {
       online: false,
-      serverName: 'Servidor Assetto Corsa',
+      serverName: 'LATAM Simracing Alliance',
       trackName: 'Fuera de línea / Reiniciando',
       sessionType: 'Desconocida',
       timeLeftFormatted: '--:--',
@@ -130,10 +146,13 @@ export class EmperorService {
   }
 
   /**
-   * Normaliza la respuesta JSON de Emperor Server / ACSM al formato interno tipado.
+   * Normaliza la respuesta JSON de Emperor Server / ACSM (`/api/details`) al formato interno tipado.
    */
   private normalizeEmperorResponse(raw: RawEmperorLiveTimings): ServerLiveStatus {
-    const serverName = raw.ServerName ?? raw.name ?? 'Servidor Assetto Corsa';
+    const rawServerName = raw.ServerName ?? raw.name ?? 'LATAM Simracing Alliance';
+    // Limpiar el sufijo de puerto que agrega Content Manager Wrapper si está presente
+    const serverName = rawServerName.replace(/\s*ℹ\d+$/, '').trim();
+
     const rawTrack = raw.Track ?? raw.track ?? 'Circuito desconocido';
     const trackConfig = raw.TrackConfig ?? raw.track_config;
 
@@ -154,13 +173,16 @@ export class EmperorService {
       timeLeftFormatted,
       connectedDriversCount,
       maxClients,
+      ambientTemp: raw.ambientTemperature,
+      roadTemp: raw.roadTemperature,
       drivers,
       updatedAt: new Date(),
     };
   }
 
   private extractConnectedDrivers(raw: RawEmperorLiveTimings): ConnectedDriver[] {
-    const source = raw.ConnectedDrivers ?? raw.Drivers ?? raw.Cars;
+    const source =
+      raw.players?.Cars ?? raw.ConnectedDrivers ?? raw.Drivers ?? raw.Cars;
     if (!source) return [];
 
     const driverEntries: RawEmperorDriver[] = Array.isArray(source)
@@ -170,7 +192,7 @@ export class EmperorService {
     const connected: ConnectedDriver[] = [];
 
     for (const entry of driverEntries) {
-      const isConnected = entry.CarInfo?.IsConnected ?? entry.IsConnected ?? true;
+      const isConnected = entry.CarInfo?.IsConnected ?? entry.IsConnected ?? false;
       const driverName =
         entry.CarInfo?.DriverName ?? entry.DriverName ?? entry.Driver ?? entry.name;
       const carModel =
@@ -188,6 +210,7 @@ export class EmperorService {
       connected.push({
         name: driverName.trim(),
         carModel: this.formatIdentifier(carModel),
+        nation: entry.DriverNation || undefined,
         bestLap:
           entry.BestLap && entry.BestLap > 0
             ? this.formatLapTime(entry.BestLap)
@@ -225,9 +248,8 @@ export class EmperorService {
   }
 
   private formatTimeLeft(rawTimeLeft: number | undefined): string {
-    if (!rawTimeLeft || rawTimeLeft <= 0) return '00:00';
+    if (!rawTimeLeft || rawTimeLeft <= 0) return 'En curso';
 
-    // ACSM a veces reporta ms o segundos dependiendo del endpoint
     const totalSeconds =
       rawTimeLeft > 86400 ? Math.floor(rawTimeLeft / 1000) : Math.floor(rawTimeLeft);
 
@@ -242,7 +264,6 @@ export class EmperorService {
   }
 
   private formatLapTime(lapMs: number): string {
-    // Soporta tiempos en milisegundos o nanosegundos (ACSM usa ns en algunos campos)
     const ms = lapMs > 10_000_000 ? Math.floor(lapMs / 1_000_000) : lapMs;
     const minutes = Math.floor(ms / 60000);
     const seconds = Math.floor((ms % 60000) / 1000);
@@ -252,71 +273,82 @@ export class EmperorService {
 
   private formatIdentifier(rawId: string): string {
     return rawId
-      .replace(/^ks_/, '')
+      .replace(/^(ks_|rt_|lmgt3_|fsr_|ac_friends_|bm_|ng_)/i, '')
       .replace(/[_-]+/g, ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+      .replace(/\bGt3\b/g, 'GT3')
+      .replace(/\bAmg\b/g, 'AMG')
+      .replace(/\bBmw\b/g, 'BMW')
+      .replace(/\bLms\b/g, 'LMS')
+      .replace(/\bNsx\b/g, 'NSX')
+      .replace(/\bGtr\b/g, 'GTR')
+      .replace(/\bRcf\b/g, 'RCF')
+      .replace(/\bGr\b/g, 'GR')
+      .replace(/\bEvo\b/g, 'Evo');
   }
 
-  /**
-   * Modo Simulación (MOCK_MODE=true):
-   * Va rotando estados para probar en Discord el Embed gris (0 pilotos),
-   * Embed verde con 1 piloto, y la subida a 3 pilotos para disparar el Smart Ping.
-   */
   private getMockLiveStatus(): ServerLiveStatus {
     const scenarios: Array<Omit<ServerLiveStatus, 'updatedAt'>> = [
       {
         online: true,
-        serverName: 'SimRacing Trackday & GT3 [MOCK]',
-        trackName: 'Spa Francorchamps',
-        trackConfig: 'GP Layout',
+        serverName: 'LATAM Simracing Alliance - Bathurst [MOCK]',
+        trackName: 'Bathurst',
         sessionType: 'Practice',
         timeLeftFormatted: '42:15',
         connectedDriversCount: 1,
-        maxClients: 24,
+        maxClients: 16,
+        ambientTemp: 20,
+        roadTemp: 44,
         drivers: [
           {
-            name: 'Javi',
-            carModel: 'Porsche 911 GT3 R',
-            bestLap: '2:18.412',
+            name: 'Javier Weimann',
+            carModel: 'Lamborghini Huracan GT3 Evo2',
+            nation: 'ARG',
+            bestLap: '2:04.412',
           },
         ],
       },
       {
         online: true,
-        serverName: 'SimRacing Trackday & GT3 [MOCK]',
-        trackName: 'Spa Francorchamps',
-        trackConfig: 'GP Layout',
+        serverName: 'LATAM Simracing Alliance - Bathurst [MOCK]',
+        trackName: 'Bathurst',
         sessionType: 'Qualy',
         timeLeftFormatted: '18:40',
         connectedDriversCount: 3,
-        maxClients: 24,
+        maxClients: 16,
+        ambientTemp: 20,
+        roadTemp: 44,
         drivers: [
           {
-            name: 'Javi',
-            carModel: 'Porsche 911 GT3 R',
-            bestLap: '2:17.890',
+            name: 'Javier Weimann',
+            carModel: 'Lamborghini Huracan GT3 Evo2',
+            nation: 'ARG',
+            bestLap: '2:03.890',
           },
           {
-            name: 'Franco C.',
-            carModel: 'Ferrari 296 GT3',
-            bestLap: '2:18.105',
+            name: 'Alonso Cabezas',
+            carModel: 'Porsche 992 GT3 R',
+            nation: 'CHL',
+            bestLap: '2:04.105',
           },
           {
-            name: 'Agustin C.',
-            carModel: 'BMW M4 GT3',
-            bestLap: '2:18.550',
+            name: 'JotaEme Fernández',
+            carModel: 'Mercedes AMG GT3 Evo',
+            nation: 'CHL',
+            bestLap: '2:04.550',
           },
         ],
       },
       {
         online: true,
-        serverName: 'SimRacing Trackday & GT3 [MOCK]',
-        trackName: 'Spa Francorchamps',
-        trackConfig: 'GP Layout',
+        serverName: 'LATAM Simracing Alliance - Bathurst [MOCK]',
+        trackName: 'Bathurst',
         sessionType: 'Practice',
         timeLeftFormatted: '59:00',
         connectedDriversCount: 0,
-        maxClients: 24,
+        maxClients: 16,
+        ambientTemp: 20,
+        roadTemp: 44,
         drivers: [],
       },
     ];

@@ -6,34 +6,44 @@ import {
   SlashCommandBuilder,
 } from 'discord.js';
 import type { SlashCommand } from './types.js';
+import { env } from '../config/env.js';
 import { emperorService } from '../services/emperor.service.js';
 
 export const linkCommand: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName('link')
     .setDescription(
-      'Devuelve el enlace directo a Content Manager en texto y botón para entrar o compartir'
+      'Devuelve el enlace directo a Content Manager, contraseña y botón para entrar en 1-Click'
     ),
 
   async execute(interaction) {
     const directProtocolLink = emperorService.getContentManagerProtocolLink();
     const buttonJoinUrl = emperorService.getContentManagerJoinButtonUrl();
 
+    const fields = [
+      {
+        name: '🌐 Enlace Web 1-Click (Para entrar o compartir)',
+        value: buttonJoinUrl,
+      },
+      {
+        name: '📋 Protocolo directo Content Manager',
+        value: `\`\`\`\n${directProtocolLink}\n\`\`\``,
+      },
+    ];
+
+    if (env.AC_SERVER_PASSWORD) {
+      fields.unshift({
+        name: '🔑 Contraseña del Servidor',
+        value: `\`${env.AC_SERVER_PASSWORD}\``,
+      });
+    }
+
     const embed = new EmbedBuilder()
-      .setTitle('🔗 Enlace Directo — Content Manager')
+      .setTitle('🔗 Acceso al Servidor — LATAM SimRacing Alliance')
       .setDescription(
-        'Haz clic en el botón de abajo para abrir **Content Manager** directamente o copia el enlace manual:'
+        'Haz clic en el botón de abajo para abrir **Content Manager** directamente (ya incluye la contraseña):'
       )
-      .addFields(
-        {
-          name: '📋 Protocolo directo (Copiar y pegar en navegador / CM)',
-          value: `\`\`\`\n${directProtocolLink}\n\`\`\``,
-        },
-        {
-          name: '🌐 Enlace Web 1-Click (Para compartir)',
-          value: buttonJoinUrl,
-        }
-      )
+      .addFields(fields)
       .setColor(0x3498db)
       .setTimestamp(new Date());
 
