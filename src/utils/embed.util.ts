@@ -21,7 +21,6 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
   embeds: [EmbedBuilder];
   components: [ActionRowBuilder<ButtonBuilder>];
 } {
-  const directProtocolLink = emperorService.getContentManagerProtocolLink();
   const buttonJoinUrl = emperorService.getContentManagerJoinButtonUrl();
   const liveTimingWebUrl = emperorService.getLiveTimingWebUrl();
 
@@ -37,7 +36,7 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
 
     const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
-        .setLabel('Entrar a Pista (1-Click CM)')
+        .setLabel('Entrar a Pista')
         .setStyle(ButtonStyle.Link)
         .setURL(buttonJoinUrl)
         .setEmoji('🏎️')
@@ -84,9 +83,7 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
   const embed = new EmbedBuilder()
     .setTitle(`🏁 ${status.serverName}`)
     .setURL(liveTimingWebUrl)
-    .setDescription(
-      `**Estado:** ${statusIndicator}${weatherText}${passwordLine}\n**Acceso directo CM:** \`${directProtocolLink}\``
-    )
+    .setDescription(`**Estado:** ${statusIndicator}${weatherText}${passwordLine}`)
     .setColor(embedColor)
     .addFields(
       {
@@ -119,7 +116,7 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setLabel('Entrar a Pista (1-Click CM)')
+      .setLabel('Entrar a Pista')
       .setStyle(ButtonStyle.Link)
       .setURL(buttonJoinUrl)
       .setEmoji('🏎️'),

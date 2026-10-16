@@ -108,7 +108,7 @@ export const entrylistCommand: SlashCommand = {
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
-        .setLabel('Entrar a Pista (1-Click CM)')
+        .setLabel('Entrar a Pista')
         .setStyle(ButtonStyle.Link)
         .setURL(buttonJoinUrl)
         .setEmoji('🏎️'),
