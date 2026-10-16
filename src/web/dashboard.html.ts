@@ -593,7 +593,7 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
           <div class="flex items-center justify-between mb-4">
             <div>
               <h3 class="font-display font-bold text-xl text-white">TABLAS DE CAMPEONATO PERSONALIZADAS (AC)</h3>
-              <p class="text-xs text-slate-400">Gestionadas desde el Panel Admin y conectadas con Discord (`/tabla`)</p>
+              <p class="text-xs text-slate-400">Gestionadas desde el Panel Admin y conectadas con Discord (<code class="text-lsa-cyan">/tabla</code>)</p>
             </div>
           </div>
           <div id="ac-custom-tables" class="space-y-4">
