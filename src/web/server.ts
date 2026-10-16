@@ -31,11 +31,32 @@ export function startWebServer(discordClient: Client | null = null): http.Server
         return;
       }
 
-      // 2. Estado y Mapa en Tiempo Real (cada 800ms / 1s)
+      // 2. Estado y Mapa en Tiempo Real (snapshot HTTP)
       if (req.method === 'GET' && pathname === '/api/live') {
         const state = liveTimingService.getState();
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify(state));
+        return;
+      }
+
+      // 2b. Stream SSE instantáneo en Tiempo Real (0ms latencia en cada paquete de telemetría)
+      if (req.method === 'GET' && pathname === '/api/live/stream') {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache, no-transform',
+          Connection: 'keep-alive',
+        });
+
+        // Enviar estado inicial de inmediato
+        res.write(`data: ${JSON.stringify(liveTimingService.getState())}\n\n`);
+
+        const unsubscribe = liveTimingService.subscribe((state) => {
+          res.write(`data: ${JSON.stringify(state)}\n\n`);
+        });
+
+        req.on('close', () => {
+          unsubscribe();
+        });
         return;
       }
 
