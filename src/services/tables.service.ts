@@ -231,7 +231,7 @@ export class TablesService {
   }
 
   public async publishTableToDiscord(
-    client: Client,
+    _client: Client | null,
     tableId: string,
     targetChannelId?: string
   ): Promise<boolean> {
@@ -239,14 +239,21 @@ export class TablesService {
     if (!table) return false;
 
     const channelId = targetChannelId || env.ALERT_CHANNEL_ID;
-    const channel = await client.channels.fetch(channelId).catch(() => null);
-    if (!channel || !channel.isTextBased() || !('send' in channel)) {
+    const embed = this.buildTableEmbed(table);
+
+    try {
+      const { REST, Routes } = await import('discord.js');
+      const rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
+      await rest.post(Routes.channelMessages(channelId), {
+        body: {
+          embeds: [embed.toJSON()],
+        },
+      });
+      return true;
+    } catch (error) {
+      console.error('Error publicando tabla en Discord:', error);
       return false;
     }
-
-    const embed = this.buildTableEmbed(table);
-    await (channel as TextChannel).send({ embeds: [embed] });
-    return true;
   }
 
   private async load(): Promise<void> {

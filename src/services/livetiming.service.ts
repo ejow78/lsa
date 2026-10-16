@@ -14,6 +14,7 @@ export interface LiveMapDriver {
   isInPits: boolean;
   ping: number;
   speedKmh: number;
+  topSpeedKmh: number;
   gear: number;
   rpm: number;
   headingDeg: number;
@@ -21,11 +22,29 @@ export interface LiveMapDriver {
   bestLapMs: number;
   bestLapFormatted: string;
   lastLapFormatted: string;
+  gap: string;
+  hasPosition: boolean;
   worldX: number;
   worldZ: number;
   mapPixelX: number;
   mapPixelY: number;
+  mapPercentX: number;
+  mapPercentY: number;
   color: string;
+}
+
+export interface StoredSessionTime {
+  guid: string;
+  name: string;
+  carModel: string;
+  carName: string;
+  tyres: string;
+  bestLapMs: number;
+  bestLapFormatted: string;
+  lastLapFormatted: string;
+  numLaps: number;
+  topSpeedKmh: number;
+  isOnline: boolean;
 }
 
 export interface LiveTelemetryState {
@@ -36,6 +55,7 @@ export interface LiveTelemetryState {
   trackTitle: string;
   trackCity: string;
   trackCountry: string;
+  trackLength: string;
   sessionType: string;
   sessionDurationMinutes: number;
   elapsedSeconds: number;
@@ -55,26 +75,28 @@ export interface LiveTelemetryState {
     padding: number;
   };
   drivers: LiveMapDriver[];
+  storedTimes: StoredSessionTime[];
   updatedAt: string;
 }
 
 const DRIVER_COLORS = [
   '#00f5d4',
-  '#ffbe0b',
-  '#ff006e',
-  '#3a86ff',
-  '#8338ec',
-  '#fb5607',
-  '#2ec4b6',
-  '#e71d36',
-  '#aacc00',
-  '#00bbf9',
+  '#f59e0b',
+  '#ec4899',
+  '#3b82f6',
+  '#a855f7',
+  '#10b981',
+  '#ef4444',
+  '#06b6d4',
+  '#84cc16',
+  '#f97316',
 ];
 
 export class LiveTimingService {
   private ws: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private driversByGuid = new Map<string, LiveMapDriver>();
+  private storedTimesList: StoredSessionTime[] = [];
   private carIdToGuid = new Map<number, string>();
 
   private state: LiveTelemetryState = {
@@ -85,6 +107,7 @@ export class LiveTimingService {
     trackTitle: 'Bathurst (Mount Panorama)',
     trackCity: 'Bathurst',
     trackCountry: 'Australia',
+    trackLength: '6.213 km',
     sessionType: 'Practice',
     sessionDurationMinutes: 0,
     elapsedSeconds: 0,
@@ -104,6 +127,7 @@ export class LiveTimingService {
       padding: 40,
     },
     drivers: [],
+    storedTimes: [],
     updatedAt: new Date().toISOString(),
   };
 
@@ -128,6 +152,7 @@ export class LiveTimingService {
       drivers: [...this.driversByGuid.values()].sort(
         (a, b) => a.position - b.position
       ),
+      storedTimes: this.storedTimesList,
       updatedAt: new Date().toISOString(),
     };
   }
@@ -240,6 +265,7 @@ export class LiveTimingService {
             emperorService.formatIdentifier(this.state.trackId);
           this.state.trackCity = msg.TrackInfo.city || '';
           this.state.trackCountry = msg.TrackInfo.country || '';
+          this.state.trackLength = msg.TrackInfo.length || '';
         }
 
         if (msg.TrackMapData) {
@@ -265,18 +291,19 @@ export class LiveTimingService {
         const rawDrivers = msg.ConnectedDrivers?.Drivers ?? {};
         let colorIdx = 0;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const [guid, d] of Object.entries<any>(rawDrivers)) {
           const carInfo = d.CarInfo ?? {};
           const carModelRaw = carInfo.CarModel || '';
           const carStats = d.Cars?.[carModelRaw] ?? {};
-          const pos = d.LastPos ?? { X: 0, Z: 0 };
-          const coords = this.worldToMapPixel(
-            Number(pos.X || 0),
-            Number(pos.Z || 0)
-          );
+          const pos = d.LastPos ?? {};
+          const wx = Number(pos.X || 0);
+          const wz = Number(pos.Z || 0);
+          const hasPosition = wx !== 0 || wz !== 0;
+          const coords = this.worldToMapCoords(wx, wz);
 
-          const bestLapMs = Number(carStats.BestLap || 0);
-          const lastLapMs = Number(carStats.LastLap || 0);
+          const bestLapNsOrMs = Number(carStats.BestLap || 0);
+          const lastLapNsOrMs = Number(carStats.LastLap || 0);
           const carId = Number(carInfo.CarID ?? 0);
           this.carIdToGuid.set(carId, guid);
 
@@ -296,25 +323,38 @@ export class LiveTimingService {
             isInPits: Boolean(d.IsInPits),
             ping: Number(d.Ping || 0),
             speedKmh: 0,
+            topSpeedKmh: Math.round(Number(carStats.TopSpeedBestLap || 0)),
             gear: 0,
             rpm: 0,
             headingDeg: 0,
             numLaps: Number(carStats.NumLaps ?? d.TotalNumLaps ?? 0),
-            bestLapMs,
+            bestLapMs: bestLapNsOrMs,
             bestLapFormatted:
-              bestLapMs > 0
-                ? emperorService.formatLapTime(bestLapMs)
+              bestLapNsOrMs > 0
+                ? emperorService.formatLapTime(bestLapNsOrMs)
                 : 'Sin tiempo',
             lastLapFormatted:
-              lastLapMs > 0 ? emperorService.formatLapTime(lastLapMs) : '-',
-            worldX: Number(pos.X || 0),
-            worldZ: Number(pos.Z || 0),
-            mapPixelX: coords.x,
-            mapPixelY: coords.y,
+              lastLapNsOrMs > 0
+                ? emperorService.formatLapTime(lastLapNsOrMs)
+                : '-',
+            gap: String(d.Split || ''),
+            hasPosition,
+            worldX: wx,
+            worldZ: wz,
+            mapPixelX: coords.pixelX,
+            mapPixelY: coords.pixelY,
+            mapPercentX: coords.percentX,
+            mapPercentY: coords.percentY,
             color: DRIVER_COLORS[colorIdx % DRIVER_COLORS.length],
           });
           colorIdx++;
         }
+
+        // Extraer tiempos guardados de la sesión (Connected + Disconnected)
+        this.extractStoredSessionTimes(
+          msg.ConnectedDrivers?.Drivers ?? {},
+          msg.DisconnectedDrivers?.Drivers ?? {}
+        );
         break;
       }
 
@@ -323,11 +363,17 @@ export class LiveTimingService {
         const info = packet.Message;
         if (!info || !info.DriverGUID) break;
         const guid = String(info.DriverGUID);
-        const carId = Number(info.CarID ?? 0);
+        const carId = typeof info.CarID === 'number' ? info.CarID : 0;
         this.carIdToGuid.set(carId, guid);
 
-        if (!this.driversByGuid.has(guid)) {
-          const coords = this.worldToMapPixel(0, 0);
+        const existing = this.driversByGuid.get(guid);
+        if (existing) {
+          existing.carId = carId;
+          existing.carModel = emperorService.formatIdentifier(
+            info.CarModel || existing.carModel
+          );
+          existing.tyres = info.Tyres || existing.tyres;
+        } else {
           const idx = this.driversByGuid.size;
           this.driversByGuid.set(guid, {
             guid,
@@ -346,6 +392,7 @@ export class LiveTimingService {
             isInPits: true,
             ping: 0,
             speedKmh: 0,
+            topSpeedKmh: 0,
             gear: 0,
             rpm: 0,
             headingDeg: 0,
@@ -353,12 +400,34 @@ export class LiveTimingService {
             bestLapMs: 0,
             bestLapFormatted: 'Sin tiempo',
             lastLapFormatted: '-',
+            gap: '',
+            hasPosition: false,
             worldX: 0,
             worldZ: 0,
-            mapPixelX: coords.x,
-            mapPixelY: coords.y,
+            mapPixelX: 0,
+            mapPixelY: 0,
+            mapPercentX: 50,
+            mapPercentY: 50,
             color: DRIVER_COLORS[idx % DRIVER_COLORS.length],
           });
+        }
+        break;
+      }
+
+      // 101 / 109 = Cambio de neumáticos o CarInfo
+      case 101:
+      case 109: {
+        const info = packet.Message;
+        if (!info || !info.DriverGUID) break;
+        const guid = String(info.DriverGUID);
+        const carId = typeof info.CarID === 'number' ? info.CarID : 0;
+        this.carIdToGuid.set(carId, guid);
+        const driver = this.driversByGuid.get(guid);
+        if (driver) {
+          if (info.Tyres) driver.tyres = info.Tyres;
+          if (info.CarModel) {
+            driver.carModel = emperorService.formatIdentifier(info.CarModel);
+          }
         }
         break;
       }
@@ -374,8 +443,19 @@ export class LiveTimingService {
       // 53 = Posición y telemetría en tiempo real cada 800ms
       case 53: {
         const update = packet.Message;
-        if (!update || typeof update.CarID !== 'number') break;
-        const guid = this.carIdToGuid.get(update.CarID);
+        if (!update) break;
+
+        // En Go (Emperor Server), CarID=0 puede omitirse por omitempty
+        const carId = typeof update.CarID === 'number' ? update.CarID : 0;
+        let guid = this.carIdToGuid.get(carId);
+
+        // Si solo hay 1 piloto conectado y aún no se mapeó el CarID, asociarlo
+        if (!guid && this.driversByGuid.size === 1) {
+          const singleDriver = [...this.driversByGuid.values()][0];
+          guid = singleDriver.guid;
+          this.carIdToGuid.set(carId, guid);
+        }
+
         if (!guid) break;
         const driver = this.driversByGuid.get(guid);
         if (!driver) break;
@@ -383,17 +463,25 @@ export class LiveTimingService {
         if (update.Pos) {
           const wx = Number(update.Pos.X || 0);
           const wz = Number(update.Pos.Z || 0);
-          const coords = this.worldToMapPixel(wx, wz);
-          driver.worldX = wx;
-          driver.worldZ = wz;
-          driver.mapPixelX = coords.x;
-          driver.mapPixelY = coords.y;
+          if (wx !== 0 || wz !== 0) {
+            const coords = this.worldToMapCoords(wx, wz);
+            driver.hasPosition = true;
+            driver.worldX = wx;
+            driver.worldZ = wz;
+            driver.mapPixelX = coords.pixelX;
+            driver.mapPixelY = coords.pixelY;
+            driver.mapPercentX = coords.percentX;
+            driver.mapPercentY = coords.percentY;
+          }
         }
 
         if (update.Velocity) {
           const vx = Number(update.Velocity.X || 0);
           const vz = Number(update.Velocity.Z || 0);
           driver.speedKmh = Math.floor(Math.sqrt(vx * vx + vz * vz) * 3.6);
+          if (driver.speedKmh > driver.topSpeedKmh) {
+            driver.topSpeedKmh = driver.speedKmh;
+          }
         }
 
         if (update.Rotation && typeof update.Rotation.X === 'number') {
@@ -411,32 +499,106 @@ export class LiveTimingService {
         if (typeof update.IsInPits === 'boolean') {
           driver.isInPits = update.IsInPits;
         }
+        if (typeof update.Ping === 'number') {
+          driver.ping = update.Ping;
+        }
+        if (typeof update.Gap === 'string') {
+          driver.gap = update.Gap;
+        }
         break;
       }
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private extractStoredSessionTimes(connected: any, disconnected: any): void {
+    const entries: StoredSessionTime[] = [];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const processGroup = (group: any, isOnline: boolean) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const [guid, d] of Object.entries<any>(group || {})) {
+        const driverName = d.CarInfo?.DriverName || 'Piloto';
+        const carsObj = d.Cars || {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const [carModelRaw, stats] of Object.entries<any>(carsObj)) {
+          const numLaps = Number(stats.NumLaps || 0);
+          const bestLap = Number(stats.BestLap || 0);
+          const lastLap = Number(stats.LastLap || 0);
+          if (numLaps <= 0 && bestLap <= 0 && !isOnline) continue;
+
+          entries.push({
+            guid: `${guid}_${carModelRaw}`,
+            name: driverName,
+            carModel: emperorService.formatIdentifier(carModelRaw),
+            carName:
+              stats.CarName || emperorService.formatIdentifier(carModelRaw),
+            tyres: stats.TyreBestLap || d.CarInfo?.Tyres || '-',
+            bestLapMs: bestLap > 10_000_000 ? Math.floor(bestLap / 1_000_000) : bestLap,
+            bestLapFormatted:
+              bestLap > 0 ? emperorService.formatLapTime(bestLap) : 'Sin tiempo',
+            lastLapFormatted:
+              lastLap > 0 ? emperorService.formatLapTime(lastLap) : '-',
+            numLaps,
+            topSpeedKmh: Math.round(Number(stats.TopSpeedBestLap || 0)),
+            isOnline,
+          });
+        }
+      }
+    };
+
+    processGroup(connected, true);
+    processGroup(disconnected, false);
+
+    entries.sort((a, b) => {
+      const aTime = a.bestLapMs > 0 ? a.bestLapMs : 999_999_999;
+      const bTime = b.bestLapMs > 0 ? b.bestLapMs : 999_999_999;
+      return aTime - bTime;
+    });
+
+    this.storedTimesList = entries;
+  }
+
   /**
-   * Traduce coordenadas 3D (X, Z) del servidor de Assetto Corsa a píxeles exactos sobre `map.png`.
+   * Fórmula exacta de Emperor Server (`translateToTrackCoordinate` en `server-manager.js`):
+   * En `server-manager.js`, `this.trackMargin` es `0`:
+   *   pixelX = (worldX + offset_x) / scale_factor + padding
+   *   pixelZ = (worldZ + offset_y) / scale_factor + padding
+   * Además calculamos el porcentaje exacto (0% a 100%) respecto de `width` y `height` del PNG.
    */
-  private worldToMapPixel(
+  private worldToMapCoords(
     worldX: number,
     worldZ: number
-  ): { x: number; y: number } {
-    const { offsetX, offsetY, margin, scaleFactor, padding } =
+  ): {
+    pixelX: number;
+    pixelY: number;
+    percentX: number;
+    percentY: number;
+  } {
+    const { width, height, offsetX, offsetY, scaleFactor, padding } =
       this.state.mapData;
     const safeScale = scaleFactor > 0 ? scaleFactor : 1;
+    const safeW = width > 0 ? width : 1680;
+    const safeH = height > 0 ? height : 2606;
 
-    const x = (worldX + offsetX + margin) / safeScale + padding;
-    const y = (worldZ + offsetY + margin) / safeScale + padding;
+    const pixelX = (worldX + offsetX) / safeScale + padding;
+    const pixelY = (worldZ + offsetY) / safeScale + padding;
+
+    const percentX = Math.max(0, Math.min(100, (pixelX / safeW) * 100));
+    const percentY = Math.max(0, Math.min(100, (pixelY / safeH) * 100));
 
     return {
-      x: Math.round(x * 10) / 10,
-      y: Math.round(y * 10) / 10,
+      pixelX: Math.round(pixelX * 10) / 10,
+      pixelY: Math.round(pixelY * 10) / 10,
+      percentX: Math.round(percentX * 1000) / 1000,
+      percentY: Math.round(percentY * 1000) / 1000,
     };
   }
 
-  private mapSessionType(typeNum: number | undefined, fallbackName?: string): string {
+  private mapSessionType(
+    typeNum: number | undefined,
+    fallbackName?: string
+  ): string {
     switch (typeNum) {
       case 0:
         return 'Booking';

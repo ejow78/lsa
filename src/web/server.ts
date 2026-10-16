@@ -6,14 +6,13 @@ import { liveTimingService } from '../services/livetiming.service.js';
 import { tablesService, type CustomTable } from '../services/tables.service.js';
 import { DASHBOARD_HTML } from './dashboard.html.js';
 
-export function startWebServer(discordClient: Client): http.Server {
+export function startWebServer(discordClient: Client | null = null): http.Server {
   liveTimingService.start();
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
     const pathname = url.pathname;
 
-    // CORS básico por si se consume desde otro subdominio
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-password');
@@ -32,7 +31,7 @@ export function startWebServer(discordClient: Client): http.Server {
         return;
       }
 
-      // 2. Estado y Mapa en Tiempo Real (cada 1s)
+      // 2. Estado y Mapa en Tiempo Real (cada 800ms / 1s)
       if (req.method === 'GET' && pathname === '/api/live') {
         const state = liveTimingService.getState();
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -40,26 +39,40 @@ export function startWebServer(discordClient: Client): http.Server {
         return;
       }
 
-      // 3. Resumen de Assetto Corsa (Hotlaps + Campeonatos Emperor + Entry List)
+      // 3. Resumen completo de Assetto Corsa
       if (req.method === 'GET' && pathname === '/api/ac/overview') {
-        const [hotlaps, championships, entryList] = await Promise.all([
-          emperorService.getTrackHotlaps(false),
-          emperorService.getChampionships(),
-          emperorService.getEntryList(),
-        ]);
+        const [hotlaps, hotlapsByCar, championships, entryList, latestResult] =
+          await Promise.all([
+            emperorService.getTrackHotlaps(false),
+            emperorService.getTrackHotlaps(true),
+            emperorService.getChampionships(),
+            emperorService.getEntryList(),
+            emperorService.getLatestSessionResult(),
+          ]);
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
           JSON.stringify({
             hotlaps,
+            hotlapsByCar,
             championships,
             entryList,
+            latestResult,
           })
         );
         return;
       }
 
-      // 4. Obtener todas las tablas (AC y ACC)
+      // 4. Perfil de Telemetría por Piloto
+      if (req.method === 'GET' && pathname === '/api/ac/driver') {
+        const nameQuery = url.searchParams.get('name') || undefined;
+        const profile = await emperorService.getDriverProfile(nameQuery);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(profile));
+        return;
+      }
+
+      // 5. Obtener todas las tablas (AC y ACC)
       if (req.method === 'GET' && pathname === '/api/tables') {
         const tables = await tablesService.getAllTables();
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -67,7 +80,7 @@ export function startWebServer(discordClient: Client): http.Server {
         return;
       }
 
-      // 5. Crear o Editar una Tabla (requiere contraseña de Admin)
+      // 6. Crear o Editar una Tabla (requiere contraseña de Admin)
       if (req.method === 'POST' && pathname === '/api/tables') {
         const adminPass = req.headers['x-admin-password'];
         if (adminPass !== env.ADMIN_PASSWORD) {
@@ -83,7 +96,7 @@ export function startWebServer(discordClient: Client): http.Server {
         return;
       }
 
-      // 6. Eliminar una Tabla
+      // 7. Eliminar una Tabla
       const deleteMatch = pathname.match(/^\/api\/tables\/([^/]+)$/);
       if (req.method === 'DELETE' && deleteMatch) {
         const adminPass = req.headers['x-admin-password'];
@@ -100,7 +113,7 @@ export function startWebServer(discordClient: Client): http.Server {
         return;
       }
 
-      // 7. Publicar una Tabla directamente en Discord desde el Panel Web
+      // 8. Publicar una Tabla directamente en Discord desde el Panel Web
       const publishMatch = pathname.match(/^\/api\/tables\/([^/]+)\/publish-discord$/);
       if (req.method === 'POST' && publishMatch) {
         const adminPass = req.headers['x-admin-password'];
