@@ -7,6 +7,65 @@ export interface ConnectedDriver {
   bestLap?: string;
 }
 
+export interface EntryListSlot {
+  slotNumber: number;
+  driverName: string;
+  driverTeam: string;
+  driverNation: string;
+  carModel: string;
+  skin: string;
+  isConnected: boolean;
+  isFreeSlot: boolean;
+}
+
+export interface ServerEntryList {
+  online: boolean;
+  serverName: string;
+  trackName: string;
+  trackPreviewUrl?: string;
+  totalSlots: number;
+  assignedSlots: EntryListSlot[];
+  freeSlots: EntryListSlot[];
+  updatedAt: Date;
+}
+
+export interface ChampionshipEventSummary {
+  index: number;
+  name: string;
+  trackName: string;
+  trackLayout?: string;
+  completed: boolean;
+  scheduledDate?: string;
+}
+
+export interface ChampionshipClassSummary {
+  name: string;
+  totalSlots: number;
+  registeredDrivers: Array<{
+    name: string;
+    team?: string;
+    carModel: string;
+  }>;
+  pointsTopPlaces: number[];
+  bestLapPoints: number;
+  polePoints: number;
+}
+
+export interface ChampionshipSummary {
+  id: string;
+  name: string;
+  url: string;
+  signUpUrl: string;
+  openEntrants: boolean;
+  signUpEnabled: boolean;
+  numEvents: number;
+  numClasses: number;
+  numEntrants: number;
+  progressPercent: number;
+  classes: ChampionshipClassSummary[];
+  events: ChampionshipEventSummary[];
+}
+
 export interface ServerLiveStatus {
   online: boolean;
   serverName: string;
@@ -59,12 +118,56 @@ interface RawEmperorDriver {
   DriverName?: string;
   Driver?: string;
   name?: string;
+  DriverTeam?: string;
   DriverNation?: string;
   CarModel?: string;
   Model?: string;
+  Skin?: string;
   car?: string;
   IsConnected?: boolean;
   BestLap?: number;
+}
+
+interface RawChampionshipExport {
+  ID: string;
+  Name: string;
+  IsInactive?: boolean;
+  OpenEntrants?: boolean;
+  SignUpForm?: {
+    Enabled?: boolean;
+  };
+  Stats?: {
+    NumEvents?: number;
+    NumClasses?: number;
+    NumEntrants?: number;
+    Progress?: number;
+  };
+  Classes?: Array<{
+    Name?: string;
+    Entrants?: Record<
+      string,
+      {
+        Name?: string;
+        Team?: string;
+        Model?: string;
+      }
+    >;
+    Points?: {
+      Places?: number[];
+      BestLap?: number;
+      PolePosition?: number;
+    };
+  }>;
+  Events?: Array<{
+    ID: string;
+    Name?: string;
+    Scheduled?: string;
+    CompletedTime?: string;
+    RaceSetup?: {
+      Track?: string;
+      TrackLayout?: string;
+    };
+  }>;
 }
 
 export class EmperorService {
@@ -93,6 +196,14 @@ export class EmperorService {
   }
 
   /**
+   * Genera la URL de la página de Campeonatos de Emperor Servers.
+   */
+  public getChampionshipsWebUrl(): string {
+    const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+    return `${base}/championships`;
+  }
+
+  /**
    * Genera la URL de la foto de vista previa del circuito alojada en Emperor Servers.
    */
   public getTrackPreviewImageUrl(rawTrack: string, rawConfig?: string): string {
@@ -108,6 +219,208 @@ export class EmperorService {
       return this.getMockLiveStatus();
     }
 
+    const rawData = await this.fetchRawServerData();
+    if (!rawData) {
+      return {
+        online: false,
+        serverName: 'LATAM Simracing Alliance',
+        trackName: 'Fuera de línea / Reiniciando',
+        sessionType: 'Desconocida',
+        timeLeftFormatted: '--:--',
+        connectedDriversCount: 0,
+        maxClients: 0,
+        drivers: [],
+        updatedAt: new Date(),
+      };
+    }
+
+    return this.normalizeEmperorResponse(rawData);
+  }
+
+  /**
+   * Obtiene el Entry List completo del servidor (autos asignados a pilotos y autos libres).
+   */
+  public async getEntryList(): Promise<ServerEntryList> {
+    const rawData = await this.fetchRawServerData();
+    if (!rawData) {
+      return {
+        online: false,
+        serverName: 'LATAM Simracing Alliance',
+        trackName: 'Fuera de línea / Reiniciando',
+        totalSlots: 0,
+        assignedSlots: [],
+        freeSlots: [],
+        updatedAt: new Date(),
+      };
+    }
+
+    const rawServerName =
+      rawData.ServerName ?? rawData.name ?? 'LATAM Simracing Alliance';
+    const serverName = rawServerName.replace(/\s*ℹ\d+$/, '').trim();
+    const rawTrack = rawData.Track ?? rawData.track ?? 'Circuito desconocido';
+    const trackConfig = rawData.TrackConfig ?? rawData.track_config;
+
+    const rawCars =
+      rawData.players?.Cars ??
+      (Array.isArray(rawData.Cars) ? rawData.Cars : []);
+
+    const assignedSlots: EntryListSlot[] = [];
+    const freeSlots: EntryListSlot[] = [];
+
+    rawCars.forEach((car, index) => {
+      const driverName = (
+        car.CarInfo?.DriverName ??
+        car.DriverName ??
+        car.Driver ??
+        car.name ??
+        ''
+      ).trim();
+      const rawModel =
+        car.CarInfo?.CarName ??
+        car.CarInfo?.CarModel ??
+        car.CarModel ??
+        car.Model ??
+        car.car ??
+        'Auto desconocido';
+      const isConnected = Boolean(car.CarInfo?.IsConnected ?? car.IsConnected);
+      const isFreeSlot = driverName === '';
+
+      const slot: EntryListSlot = {
+        slotNumber: index + 1,
+        driverName: isFreeSlot ? 'Libre' : driverName,
+        driverTeam: (car.DriverTeam ?? '').trim(),
+        driverNation: (car.DriverNation ?? '').trim(),
+        carModel: this.formatIdentifier(rawModel),
+        skin: (car.Skin ?? '').replace(/[_-]+/g, ' ').trim(),
+        isConnected,
+        isFreeSlot,
+      };
+
+      if (isFreeSlot) {
+        freeSlots.push(slot);
+      } else {
+        assignedSlots.push(slot);
+      }
+    });
+
+    return {
+      online: true,
+      serverName,
+      trackName: this.formatIdentifier(rawTrack),
+      trackPreviewUrl: this.getTrackPreviewImageUrl(rawTrack, trackConfig),
+      totalSlots: rawCars.length || Number(rawData.maxclients ?? 16),
+      assignedSlots,
+      freeSlots,
+      updatedAt: new Date(),
+    };
+  }
+
+  /**
+   * Descubre y obtiene los campeonatos activos desde Emperor Server (`/championships` y `/championship/<id>/export`).
+   */
+  public async getChampionships(): Promise<ChampionshipSummary[]> {
+    const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+
+    try {
+      const htmlResp = await fetch(`${base}/championships`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!htmlResp.ok) return [];
+
+      const html = await htmlResp.text();
+      const matches = [
+        ...html.matchAll(/href="\/championship\/([a-f0-9-]{36})"/gi),
+      ];
+      const uniqueIds = [...new Set(matches.map((m) => m[1]))];
+
+      const summaries: ChampionshipSummary[] = [];
+
+      for (const id of uniqueIds.slice(0, 5)) {
+        try {
+          const exportResp = await fetch(`${base}/championship/${id}/export`, {
+            headers: { Accept: 'application/json' },
+            signal: AbortSignal.timeout(8000),
+          });
+          if (!exportResp.ok) continue;
+
+          const data = (await exportResp.json()) as RawChampionshipExport;
+          if (data.IsInactive) continue;
+
+          const classes: ChampionshipClassSummary[] = (data.Classes ?? []).map(
+            (cls) => {
+              const entrantsValues = Object.values(cls.Entrants ?? {});
+              const registeredDrivers = entrantsValues
+                .filter((e) => e.Name && e.Name.trim() !== '')
+                .map((e) => ({
+                  name: e.Name!.trim(),
+                  team: e.Team?.trim() || undefined,
+                  carModel: this.formatIdentifier(e.Model ?? 'Auto'),
+                }));
+
+              return {
+                name: cls.Name || 'General',
+                totalSlots: entrantsValues.length,
+                registeredDrivers,
+                pointsTopPlaces: (cls.Points?.Places ?? []).slice(0, 5),
+                bestLapPoints: cls.Points?.BestLap ?? 0,
+                polePoints: cls.Points?.PolePosition ?? 0,
+              };
+            }
+          );
+
+          const events: ChampionshipEventSummary[] = (data.Events ?? []).map(
+            (ev, idx) => {
+              const rawTrack = ev.RaceSetup?.Track ?? 'Circuito';
+              const rawLayout = ev.RaceSetup?.TrackLayout;
+              const completed = Boolean(
+                ev.CompletedTime &&
+                  !ev.CompletedTime.startsWith('0001-01-01')
+              );
+              const scheduled =
+                ev.Scheduled && !ev.Scheduled.startsWith('0001-01-01')
+                  ? ev.Scheduled
+                  : undefined;
+
+              return {
+                index: idx + 1,
+                name: ev.Name?.trim() || `Fecha ${idx + 1}`,
+                trackName: this.formatIdentifier(rawTrack),
+                trackLayout: rawLayout
+                  ? this.formatIdentifier(rawLayout)
+                  : undefined,
+                completed,
+                scheduledDate: scheduled,
+              };
+            }
+          );
+
+          summaries.push({
+            id: data.ID,
+            name: data.Name || 'Campeonato',
+            url: `${base}/championship/${data.ID}`,
+            signUpUrl: `${base}/championship/${data.ID}/sign-up`,
+            openEntrants: Boolean(data.OpenEntrants),
+            signUpEnabled: Boolean(data.SignUpForm?.Enabled),
+            numEvents: data.Stats?.NumEvents ?? events.length,
+            numClasses: data.Stats?.NumClasses ?? classes.length,
+            numEntrants: data.Stats?.NumEntrants ?? 0,
+            progressPercent: Math.round(data.Stats?.Progress ?? 0),
+            classes,
+            events,
+          });
+        } catch {
+          continue;
+        }
+      }
+
+      return summaries;
+    } catch (error) {
+      console.error('⚠️ Error al consultar campeonatos en Emperor:', error);
+      return [];
+    }
+  }
+
+  private async fetchRawServerData(): Promise<RawEmperorLiveTimings | null> {
     const baseUrl = env.EMPEROR_IP_OR_DOMAIN.startsWith('http')
       ? `${env.EMPEROR_IP_OR_DOMAIN}:${env.EMPEROR_HTTP_PORT}`
       : `http://${env.EMPEROR_IP_OR_DOMAIN}:${env.EMPEROR_HTTP_PORT}`;
@@ -130,24 +443,13 @@ export class EmperorService {
           continue;
         }
 
-        const rawData = (await response.json()) as RawEmperorLiveTimings;
-        return this.normalizeEmperorResponse(rawData);
+        return (await response.json()) as RawEmperorLiveTimings;
       } catch {
         continue;
       }
     }
 
-    return {
-      online: false,
-      serverName: 'LATAM Simracing Alliance',
-      trackName: 'Fuera de línea / Reiniciando',
-      sessionType: 'Desconocida',
-      timeLeftFormatted: '--:--',
-      connectedDriversCount: 0,
-      maxClients: 0,
-      drivers: [],
-      updatedAt: new Date(),
-    };
+    return null;
   }
 
   private normalizeEmperorResponse(raw: RawEmperorLiveTimings): ServerLiveStatus {
@@ -273,7 +575,7 @@ export class EmperorService {
     return `${minutes}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
   }
 
-  private formatIdentifier(rawId: string): string {
+  public formatIdentifier(rawId: string): string {
     return rawId
       .replace(/^(ks_|rt_|lmgt3_|fsr_|ac_friends_|bm_|ng_)/i, '')
       .replace(/[_-]+/g, ' ')
@@ -286,6 +588,7 @@ export class EmperorService {
       .replace(/\bGtr\b/g, 'GTR')
       .replace(/\bRcf\b/g, 'RCF')
       .replace(/\bGr\b/g, 'GR')
+      .replace(/\bMx5\b/g, 'MX5')
       .replace(/\bEvo\b/g, 'Evo');
   }
 

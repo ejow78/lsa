@@ -21,8 +21,9 @@ export function registerReadyEvent(client: Client): {
         { body }
       );
 
+      const commandNames = commandsList.map((cmd) => `/${cmd.data.name}`).join(', ');
       console.log(
-        `⚡ ${body.length} Slash Commands registrados en el servidor (${env.GUILD_ID}): /servidor, /link`
+        `⚡ ${body.length} Slash Commands registrados en el servidor (${env.GUILD_ID}): ${commandNames}`
       );
     } catch (error) {
       console.error('❌ Error al registrar los Slash Commands:', error);
