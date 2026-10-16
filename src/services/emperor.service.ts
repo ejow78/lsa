@@ -74,22 +74,14 @@ export class EmperorService {
    * Genera el enlace directo del protocolo nativo de Content Manager (acmanager://).
    */
   public getContentManagerProtocolLink(): string {
-    const base = `acmanager://race/online/join?ip=${env.EMPEROR_IP_OR_DOMAIN}&httpPort=${env.joinHttpPort}`;
-    if (env.AC_SERVER_PASSWORD) {
-      return `${base}&password=${encodeURIComponent(env.AC_SERVER_PASSWORD)}`;
-    }
-    return base;
+    return `acmanager://race/online/join?ip=${env.EMPEROR_IP_OR_DOMAIN}&httpPort=${env.joinHttpPort}`;
   }
 
   /**
    * Genera el enlace HTTPS oficial de redirección de Content Manager (compatible con botones de Discord).
    */
   public getContentManagerJoinButtonUrl(): string {
-    const base = `https://acstuff.ru/s/q:race/online/join?httpPort=${env.joinHttpPort}&ip=${env.EMPEROR_IP_OR_DOMAIN}`;
-    if (env.AC_SERVER_PASSWORD) {
-      return `${base}&password=${encodeURIComponent(env.AC_SERVER_PASSWORD)}`;
-    }
-    return base;
+    return `https://acstuff.ru/s/q:race/online/join?httpPort=${env.joinHttpPort}&ip=${env.EMPEROR_IP_OR_DOMAIN}`;
   }
 
   /**
