@@ -203,10 +203,12 @@ export class MonitorService {
 
     const directProtocolLink = emperorService.getContentManagerProtocolLink();
     const buttonJoinUrl = emperorService.getContentManagerJoinButtonUrl();
+    const liveTimingWebUrl = emperorService.getLiveTimingWebUrl();
     const driversNames = status.drivers.map((d) => `**${d.name}** (${d.carModel})`).join(', ');
 
     const alertEmbed = new EmbedBuilder()
       .setTitle('🔥 ¡Se armó acción en pista!')
+      .setURL(liveTimingWebUrl)
       .setDescription(
         `Ya hay **${status.connectedDriversCount}/${status.maxClients}** pilotos girando en **${status.trackName}** (${status.sessionType}).\n\n` +
           `👥 **En pista:** ${driversNames || 'Varios pilotos'}\n` +
@@ -215,12 +217,21 @@ export class MonitorService {
       .setColor(0x2ecc71)
       .setTimestamp(new Date());
 
+    if (status.trackPreviewUrl) {
+      alertEmbed.setThumbnail(status.trackPreviewUrl);
+    }
+
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setLabel('Sumarse a Pista (1-Click CM)')
         .setStyle(ButtonStyle.Link)
         .setURL(buttonJoinUrl)
-        .setEmoji('🚀')
+        .setEmoji('🚀'),
+      new ButtonBuilder()
+        .setLabel('Live Timing Web')
+        .setStyle(ButtonStyle.Link)
+        .setURL(liveTimingWebUrl)
+        .setEmoji('📊')
     );
 
     try {

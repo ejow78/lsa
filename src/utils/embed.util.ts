@@ -23,6 +23,7 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
 } {
   const directProtocolLink = emperorService.getContentManagerProtocolLink();
   const buttonJoinUrl = emperorService.getContentManagerJoinButtonUrl();
+  const liveTimingWebUrl = emperorService.getLiveTimingWebUrl();
 
   if (!status.online) {
     const offlineEmbed = new EmbedBuilder()
@@ -40,7 +41,12 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
         .setStyle(ButtonStyle.Link)
         .setURL(buttonJoinUrl)
         .setEmoji('🏎️')
-        .setDisabled(true)
+        .setDisabled(true),
+      new ButtonBuilder()
+        .setLabel('Live Timing Web')
+        .setStyle(ButtonStyle.Link)
+        .setURL(liveTimingWebUrl)
+        .setEmoji('📊')
     );
 
     return { embeds: [offlineEmbed], components: [disabledRow] };
@@ -77,6 +83,7 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
 
   const embed = new EmbedBuilder()
     .setTitle(`🏁 ${status.serverName}`)
+    .setURL(liveTimingWebUrl)
     .setDescription(
       `**Estado:** ${statusIndicator}${weatherText}${passwordLine}\n**Acceso directo CM:** \`${directProtocolLink}\``
     )
@@ -106,12 +113,21 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
     .setTimestamp(status.updatedAt)
     .setFooter({ text: 'LATAM SimRacing Alliance • Actualización en vivo' });
 
+  if (status.trackPreviewUrl) {
+    embed.setImage(status.trackPreviewUrl);
+  }
+
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setLabel('Entrar a Pista (1-Click Content Manager)')
+      .setLabel('Entrar a Pista (1-Click CM)')
       .setStyle(ButtonStyle.Link)
       .setURL(buttonJoinUrl)
-      .setEmoji('🏎️')
+      .setEmoji('🏎️'),
+    new ButtonBuilder()
+      .setLabel('Live Timing Web')
+      .setStyle(ButtonStyle.Link)
+      .setURL(liveTimingWebUrl)
+      .setEmoji('📊')
   );
 
   return { embeds: [embed], components: [row] };

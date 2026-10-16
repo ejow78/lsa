@@ -10,8 +10,10 @@ export interface ConnectedDriver {
 export interface ServerLiveStatus {
   online: boolean;
   serverName: string;
+  rawTrackId?: string;
   trackName: string;
   trackConfig?: string;
+  trackPreviewUrl?: string;
   sessionType: 'Practice' | 'Qualy' | 'Race' | 'Booking' | 'Desconocida';
   timeLeftFormatted: string;
   connectedDriversCount: number;
@@ -22,10 +24,6 @@ export interface ServerLiveStatus {
   updatedAt: Date;
 }
 
-/**
- * Interfaces flexibles para soportar `/api/details` (Emperor CM Wrapper),
- * `/live-timings.json` y `/INFO` + `/JSON|`.
- */
 interface RawEmperorLiveTimings {
   ServerName?: string;
   name?: string;
@@ -95,9 +93,24 @@ export class EmperorService {
   }
 
   /**
-   * Consulta el estado del servidor en vivo (o devuelve datos simulados si MOCK_MODE=true).
-   * Nunca lanza una excepción no controlada: si el servidor no responde, devuelve `online: false`.
+   * Genera la URL de la página web de Live Timing de Emperor Servers.
    */
+  public getLiveTimingWebUrl(): string {
+    const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+    return `${base}/live-timing`;
+  }
+
+  /**
+   * Genera la URL de la foto de vista previa del circuito alojada en Emperor Servers.
+   */
+  public getTrackPreviewImageUrl(rawTrack: string, rawConfig?: string): string {
+    const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+    if (rawConfig && rawConfig.trim() !== '') {
+      return `${base}/content/tracks/${rawTrack}/${rawConfig}/ui/preview.png`;
+    }
+    return `${base}/content/tracks/${rawTrack}/ui/preview.png`;
+  }
+
   public async getLiveStatus(): Promise<ServerLiveStatus> {
     if (env.MOCK_MODE) {
       return this.getMockLiveStatus();
@@ -145,12 +158,8 @@ export class EmperorService {
     };
   }
 
-  /**
-   * Normaliza la respuesta JSON de Emperor Server / ACSM (`/api/details`) al formato interno tipado.
-   */
   private normalizeEmperorResponse(raw: RawEmperorLiveTimings): ServerLiveStatus {
     const rawServerName = raw.ServerName ?? raw.name ?? 'LATAM Simracing Alliance';
-    // Limpiar el sufijo de puerto que agrega Content Manager Wrapper si está presente
     const serverName = rawServerName.replace(/\s*ℹ\d+$/, '').trim();
 
     const rawTrack = raw.Track ?? raw.track ?? 'Circuito desconocido';
@@ -167,8 +176,10 @@ export class EmperorService {
     return {
       online: true,
       serverName,
+      rawTrackId: rawTrack,
       trackName: this.formatIdentifier(rawTrack),
       trackConfig: trackConfig ? this.formatIdentifier(trackConfig) : undefined,
+      trackPreviewUrl: this.getTrackPreviewImageUrl(rawTrack, trackConfig),
       sessionType,
       timeLeftFormatted,
       connectedDriversCount,
@@ -232,7 +243,6 @@ export class EmperorService {
       if (normalized.includes('book')) return 'Booking';
     }
 
-    // Convención estándar de Assetto Corsa: 0=Booking, 1=Practice, 2=Qualy, 3=Race
     switch (Number(rawSession)) {
       case 0:
         return 'Booking';
@@ -292,7 +302,9 @@ export class EmperorService {
       {
         online: true,
         serverName: 'LATAM Simracing Alliance - Bathurst [MOCK]',
+        rawTrackId: 'rt_bathurst',
         trackName: 'Bathurst',
+        trackPreviewUrl: this.getTrackPreviewImageUrl('rt_bathurst'),
         sessionType: 'Practice',
         timeLeftFormatted: '42:15',
         connectedDriversCount: 1,
@@ -311,7 +323,9 @@ export class EmperorService {
       {
         online: true,
         serverName: 'LATAM Simracing Alliance - Bathurst [MOCK]',
+        rawTrackId: 'rt_bathurst',
         trackName: 'Bathurst',
+        trackPreviewUrl: this.getTrackPreviewImageUrl('rt_bathurst'),
         sessionType: 'Qualy',
         timeLeftFormatted: '18:40',
         connectedDriversCount: 3,
@@ -342,7 +356,9 @@ export class EmperorService {
       {
         online: true,
         serverName: 'LATAM Simracing Alliance - Bathurst [MOCK]',
+        rawTrackId: 'rt_bathurst',
         trackName: 'Bathurst',
+        trackPreviewUrl: this.getTrackPreviewImageUrl('rt_bathurst'),
         sessionType: 'Practice',
         timeLeftFormatted: '59:00',
         connectedDriversCount: 0,

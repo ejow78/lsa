@@ -13,17 +13,22 @@ export const linkCommand: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName('link')
     .setDescription(
-      'Devuelve el enlace directo a Content Manager, contraseña y botón para entrar en 1-Click'
+      'Devuelve el enlace directo a Content Manager, Live Timing, contraseña y botones 1-Click'
     ),
 
   async execute(interaction) {
     const directProtocolLink = emperorService.getContentManagerProtocolLink();
     const buttonJoinUrl = emperorService.getContentManagerJoinButtonUrl();
+    const liveTimingWebUrl = emperorService.getLiveTimingWebUrl();
 
     const fields = [
       {
         name: '🌐 Enlace Web 1-Click (Para entrar o compartir)',
         value: buttonJoinUrl,
+      },
+      {
+        name: '📊 Live Timing en Vivo',
+        value: liveTimingWebUrl,
       },
       {
         name: '📋 Protocolo directo Content Manager',
@@ -40,8 +45,9 @@ export const linkCommand: SlashCommand = {
 
     const embed = new EmbedBuilder()
       .setTitle('🔗 Acceso al Servidor — LATAM SimRacing Alliance')
+      .setURL(liveTimingWebUrl)
       .setDescription(
-        'Haz clic en el botón de abajo para abrir **Content Manager** directamente (ya incluye la contraseña):'
+        'Haz clic en los botones de abajo para entrar con **Content Manager** en 1 clic o ver el **Live Timing Web**:'
       )
       .addFields(fields)
       .setColor(0x3498db)
@@ -49,10 +55,15 @@ export const linkCommand: SlashCommand = {
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
-        .setLabel('Entrar a Pista (1-Click Content Manager)')
+        .setLabel('Entrar a Pista (1-Click CM)')
         .setStyle(ButtonStyle.Link)
         .setURL(buttonJoinUrl)
-        .setEmoji('🏎️')
+        .setEmoji('🏎️'),
+      new ButtonBuilder()
+        .setLabel('Live Timing Web')
+        .setStyle(ButtonStyle.Link)
+        .setURL(liveTimingWebUrl)
+        .setEmoji('📊')
     );
 
     await interaction.reply({
