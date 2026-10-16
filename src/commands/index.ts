@@ -7,6 +7,7 @@ import { campeonatoCommand } from './campeonato.command.js';
 import { tiemposCommand } from './tiempos.command.js';
 import { resultadosCommand } from './resultados.command.js';
 import { pilotoCommand } from './piloto.command.js';
+import { tablaCommand } from './tabla.command.js';
 
 export const commandsList: SlashCommand[] = [
   servidorCommand,
@@ -16,6 +17,7 @@ export const commandsList: SlashCommand[] = [
   tiemposCommand,
   resultadosCommand,
   pilotoCommand,
+  tablaCommand,
 ];
 
 export const commandsCollection = new Collection<string, SlashCommand>();

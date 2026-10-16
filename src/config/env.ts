@@ -20,6 +20,8 @@ const envSchema = z.object({
   ALERT_CHANNEL_ID: z.string().min(1, 'ALERT_CHANNEL_ID es obligatorio'),
   ALERT_ROLE_ID: z.string().min(1, 'ALERT_ROLE_ID es obligatorio'),
   POLLING_INTERVAL_SECONDS: z.coerce.number().int().min(10).default(30),
+  WEB_PORT: z.coerce.number().int().positive().default(3000),
+  ADMIN_PASSWORD: z.string().min(1).default('LaTaM2026'),
   MOCK_MODE: z
     .string()
     .optional()
@@ -30,7 +32,7 @@ const envSchema = z.object({
 const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
-  console.error('❌ Error en las variables de entorno (.env):');
+  console.error('Error en las variables de entorno (.env):');
   for (const issue of parsedEnv.error.issues) {
     console.error(`   - ${issue.path.join('.')}: ${issue.message}`);
   }
