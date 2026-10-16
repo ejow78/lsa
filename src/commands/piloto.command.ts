@@ -1,7 +1,4 @@
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   EmbedBuilder,
   SlashCommandBuilder,
 } from 'discord.js';
@@ -39,7 +36,7 @@ export const pilotoCommand: SlashCommand = {
     const profile = await emperorService.getDriverProfile(queryName);
     if (!profile) {
       await interaction.editReply({
-        content: '⚠️ Todavía no hay datos de telemetría de pilotos en las sesiones recientes.',
+        content: 'Todavía no hay datos de telemetría de pilotos en las sesiones recientes.',
       });
       return;
     }
@@ -48,15 +45,14 @@ export const pilotoCommand: SlashCommand = {
       const list = profile.availableDrivers.map((d) => `• \`${d}\``).join('\n');
       await interaction.editReply({
         content:
-          `⚠️ No encontré al piloto **"${queryName}"** en las sesiones recientes.\n\n` +
-          `👥 **Pilotos con tiempos registrados:**\n${list}`,
+          `No encontré al piloto **"${queryName}"** en las sesiones recientes.\n\n` +
+          `**Pilotos con tiempos registrados:**\n${list}`,
       });
       return;
     }
 
-    const carsLines = profile.carsUsed.map((c, idx) => {
-      const badge = idx === 0 ? '⭐' : '🏎️';
-      return `${badge} **${c.carModel}** — \`${c.bestLapFormatted}\` (${c.lapsCount} vtas • ${c.cleanLapsCount} limpias)`;
+    const carsLines = profile.carsUsed.map((c) => {
+      return `• **${c.carModel}** — \`${c.bestLapFormatted}\` (${c.lapsCount} vtas • ${c.cleanLapsCount} limpias)`;
     });
 
     const sectorsText = profile.bestSectorsFormatted
@@ -69,32 +65,32 @@ export const pilotoCommand: SlashCommand = {
         : 100;
 
     const embed = new EmbedBuilder()
-      .setTitle(`👤 Telemetría de Piloto — ${profile.driverName}`)
+      .setTitle(`Telemetría de Piloto — ${profile.driverName}`)
       .setURL(emperorService.getResultsWebUrl())
-      .setDescription(`📍 **Circuito analizado:** ${profile.trackName}`)
+      .setDescription(`**Circuito analizado:** ${profile.trackName}`)
       .setColor(0x1abc9c)
       .addFields(
         {
-          name: '⏱️ Mejor Vuelta Real',
+          name: 'Mejor Vuelta Real',
           value: `**\`${profile.bestLapFormatted}\`**\n*(${profile.bestLapCar})*`,
           inline: true,
         },
         {
-          name: '💜 Vuelta Óptima (Teórica)',
+          name: 'Vuelta Óptima (Teórica)',
           value: profile.optimalLapFormatted
             ? `**\`${profile.optimalLapFormatted}\`**\n*(${sectorsText})*`
             : 'N/D',
           inline: true,
         },
         {
-          name: '📊 Estadísticas de Pista',
+          name: 'Estadísticas de Pista',
           value:
-            `🔄 **${profile.totalLaps}** vueltas (${cleanRate}% limpias)\n` +
-            `💥 **${profile.totalIncidents}** incidentes`,
+            `**${profile.totalLaps}** vueltas (${cleanRate}% limpias)\n` +
+            `**${profile.totalIncidents}** incidentes`,
           inline: true,
         },
         {
-          name: `🏎️ Comparativa de Autos Probados (${profile.carsUsed.length})`,
+          name: `Comparativa de Autos Probados (${profile.carsUsed.length})`,
           value:
             carsLines.length > 0
               ? carsLines.join('\n').slice(0, 1024)
@@ -108,22 +104,8 @@ export const pilotoCommand: SlashCommand = {
         text: `Otros pilotos en pista: ${profile.availableDrivers.join(', ')}`,
       });
 
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setLabel('Entrar a Pista')
-        .setStyle(ButtonStyle.Link)
-        .setURL(emperorService.getContentManagerJoinButtonUrl())
-        .setEmoji('🏎️'),
-      new ButtonBuilder()
-        .setLabel('Live Timing Web')
-        .setStyle(ButtonStyle.Link)
-        .setURL(emperorService.getLiveTimingWebUrl())
-        .setEmoji('📊')
-    );
-
     await interaction.editReply({
       embeds: [embed],
-      components: [row],
     });
   },
 };
