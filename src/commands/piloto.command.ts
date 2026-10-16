@@ -67,16 +67,16 @@ export const pilotoCommand: SlashCommand = {
     const embed = new EmbedBuilder()
       .setTitle(`Telemetría de Piloto — ${profile.driverName}`)
       .setURL(emperorService.getResultsWebUrl())
-      .setDescription(`**Circuito analizado:** ${profile.trackName}`)
+      .setDescription(`**Circuito:** ${profile.trackName}`)
       .setColor(0x1abc9c)
       .addFields(
         {
-          name: 'Mejor Vuelta Real',
+          name: 'Mejor Vuelta',
           value: `**\`${profile.bestLapFormatted}\`**\n*(${profile.bestLapCar})*`,
           inline: true,
         },
         {
-          name: 'Vuelta Óptima (Teórica)',
+          name: 'Vuelta Óptima',
           value: profile.optimalLapFormatted
             ? `**\`${profile.optimalLapFormatted}\`**\n*(${sectorsText})*`
             : 'N/D',
