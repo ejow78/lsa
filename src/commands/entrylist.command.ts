@@ -62,9 +62,10 @@ export const entrylistCommand: SlashCommand = {
     const assignedLines: string[] = [];
     for (const [driverName, info] of driversMap.entries()) {
       const statusDot = info.isConnected ? '🟢' : '⚪';
-      const nationBadge = info.nation ? ` **[${info.nation}]**` : '';
+      const flag = emperorService.formatNationFlag(info.nation);
+      const flagBadge = flag ? ` ${flag}` : '';
       assignedLines.push(
-        `${statusDot} **${driverName}**${nationBadge}\n└ ${info.cars.join(' • ')}`
+        `${statusDot}${flagBadge} **${driverName}**\n└ ${info.cars.join(' • ')}`
       );
     }
 

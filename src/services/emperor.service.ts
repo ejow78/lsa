@@ -1051,6 +1051,21 @@ export class EmperorService {
       ? source
       : Object.values(source);
 
+    // Mapa auxiliar por nombre de piloto para recuperar su nacionalidad si entra en un slot libre
+    const nationByDriver = new Map<string, string>();
+    for (const entry of driverEntries) {
+      const dName = (
+        entry.CarInfo?.DriverName ??
+        entry.DriverName ??
+        entry.Driver ??
+        entry.name ??
+        ''
+      ).trim();
+      if (dName && entry.DriverNation && entry.DriverNation.trim() !== '') {
+        nationByDriver.set(dName, entry.DriverNation.trim());
+      }
+    }
+
     const connected: ConnectedDriver[] = [];
 
     for (const entry of driverEntries) {
@@ -1069,10 +1084,14 @@ export class EmperorService {
         continue;
       }
 
+      const trimmedName = driverName.trim();
+      const resolvedNation =
+        entry.DriverNation?.trim() || nationByDriver.get(trimmedName);
+
       connected.push({
-        name: driverName.trim(),
+        name: trimmedName,
         carModel: this.formatIdentifier(carModel),
-        nation: entry.DriverNation || undefined,
+        nation: resolvedNation || undefined,
         bestLap:
           entry.BestLap && entry.BestLap > 0
             ? this.formatLapTime(entry.BestLap)
@@ -1147,6 +1166,70 @@ export class EmperorService {
       .replace(/\bGr\b/g, 'GR')
       .replace(/\bMx5\b/g, 'MX5')
       .replace(/\bEvo\b/g, 'Evo');
+  }
+
+  /**
+   * Convierte códigos de país de 3 letras de Assetto Corsa (ej: ARG, CHL) en banderas de Discord (:flag_ar:).
+   */
+  public formatNationFlag(nation?: string): string {
+    if (!nation || nation.trim() === '') return '';
+    const code = nation.trim().toUpperCase();
+
+    const iso3ToIso2: Record<string, string> = {
+      ARG: 'ar',
+      CHL: 'cl',
+      CHI: 'cl',
+      URY: 'uy',
+      URU: 'uy',
+      BRA: 'br',
+      PRY: 'py',
+      PAR: 'py',
+      BOL: 'bo',
+      PER: 'pe',
+      COL: 'co',
+      VEN: 've',
+      ECU: 'ec',
+      MEX: 'mx',
+      ESP: 'es',
+      SPA: 'es',
+      USA: 'us',
+      CAN: 'ca',
+      ITA: 'it',
+      GBR: 'gb',
+      GER: 'de',
+      DEU: 'de',
+      FRA: 'fr',
+      PRT: 'pt',
+      POR: 'pt',
+      CRI: 'cr',
+      CRC: 'cr',
+      PAN: 'pa',
+      DOM: 'do',
+      GTM: 'gt',
+      GUA: 'gt',
+      SLV: 'sv',
+      ESA: 'sv',
+      HND: 'hn',
+      HON: 'hn',
+      NIC: 'ni',
+      CUB: 'cu',
+      PRI: 'pr',
+      PUR: 'pr',
+      NLD: 'nl',
+      NED: 'nl',
+      BEL: 'be',
+      CHE: 'ch',
+      SUI: 'ch',
+      AUT: 'at',
+      AUS: 'au',
+      NZL: 'nz',
+      JPN: 'jp',
+    };
+
+    const iso2 =
+      iso3ToIso2[code] ?? (code.length === 2 ? code.toLowerCase() : undefined);
+
+    return iso2 ? `:flag_${iso2}:` : `[${code}]`;
   }
 
   private getMockLiveStatus(): ServerLiveStatus {

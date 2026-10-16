@@ -74,9 +74,10 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
       ? status.drivers
           .slice(0, 24)
           .map((driver, idx) => {
-            const nationText = driver.nation ? ` [${driver.nation}]` : '';
+            const flag = emperorService.formatNationFlag(driver.nation);
+            const flagText = flag ? ` ${flag}` : '';
             const lapText = driver.bestLap ? ` • ⏱️ \`${driver.bestLap}\`` : '';
-            return `\`${String(idx + 1).padStart(2, '0')}.\` **${driver.name}**${nationText} — *${driver.carModel}*${lapText}`;
+            return `\`${String(idx + 1).padStart(2, '0')}.\`${flagText} **${driver.name}** — *${driver.carModel}*${lapText}`;
           })
           .join('\n')
       : '*No hay pilotos conectados en este momento. ¡Sé el primero en salir a girar!*';

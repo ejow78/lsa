@@ -23,6 +23,7 @@ import {
 interface PersistedBotState {
   statusMessageId?: string;
   lastResultFile?: string;
+  connectedDrivers?: Record<string, string>;
 }
 
 const STATE_DIR = path.resolve(process.cwd(), 'data');
@@ -38,7 +39,6 @@ export class MonitorService {
   private lastResultFile: string | null = null;
   private previousDriversCount = 0;
   private previousConnectedDrivers = new Map<string, string>(); // driverName -> carModel
-  private isFirstTick = true;
   private lastAlertTimestamp = 0;
 
   constructor(client: Client) {
@@ -81,7 +81,6 @@ export class MonitorService {
       this.previousDriversCount = status.online
         ? status.connectedDriversCount
         : 0;
-      this.isFirstTick = false;
     } catch (error) {
       console.error('⚠️ Error inesperado en ciclo de monitoreo:', error);
     }
@@ -158,28 +157,20 @@ export class MonitorService {
 
   /**
    * Detecta cuando un piloto entra al servidor (o cambia de auto) y envía un aviso en el canal de alertas
-   * mostrando el nombre del piloto y el auto que está usando.
+   * mostrando la bandera, el nombre del piloto y el auto que está usando.
    */
   private async evaluateDriverJoinAlerts(
     status: ServerLiveStatus
   ): Promise<void> {
     if (!status.online) {
       this.previousConnectedDrivers.clear();
+      await this.savePersistedState();
       return;
     }
 
     const currentMap = new Map<string, ConnectedDriver>();
     for (const driver of status.drivers) {
       currentMap.set(driver.name, driver);
-    }
-
-    // En el primer tick después de arrancar el bot sincronizamos quiénes ya estaban adentro
-    if (this.isFirstTick) {
-      this.previousConnectedDrivers.clear();
-      for (const [name, driver] of currentMap.entries()) {
-        this.previousConnectedDrivers.set(name, driver.carModel);
-      }
-      return;
     }
 
     const newlyJoinedDrivers: ConnectedDriver[] = [];
@@ -190,10 +181,18 @@ export class MonitorService {
       }
     }
 
-    // Actualizar memoria para el próximo ciclo
+    // Actualizar memoria y estado persistido si hubo cambios
+    const changed =
+      newlyJoinedDrivers.length > 0 ||
+      currentMap.size !== this.previousConnectedDrivers.size;
+
     this.previousConnectedDrivers.clear();
     for (const [name, driver] of currentMap.entries()) {
       this.previousConnectedDrivers.set(name, driver.carModel);
+    }
+
+    if (changed) {
+      await this.savePersistedState();
     }
 
     if (newlyJoinedDrivers.length === 0) return;
@@ -206,19 +205,16 @@ export class MonitorService {
       return;
     }
 
-    const buttonJoinUrl = emperorService.getContentManagerJoinButtonUrl();
-    const liveTimingWebUrl = emperorService.getLiveTimingWebUrl();
-
     for (const driver of newlyJoinedDrivers) {
-      const nationBadge = driver.nation ? ` **[${driver.nation}]**` : '';
+      const flag = emperorService.formatNationFlag(driver.nation);
+      const flagPrefix = flag ? `${flag} ` : '';
 
       const joinEmbed = new EmbedBuilder()
-        .setTitle('🟢 ¡Piloto en pista!')
-        .setURL(liveTimingWebUrl)
+        .setTitle('Piloto en pista')
         .setDescription(
-          `👤 **Piloto:** **${driver.name}**${nationBadge}\n` +
-            `🏎️ **Auto:** *${driver.carModel}*\n` +
-            `📍 **Circuito:** ${status.trackName} (${status.sessionType}) • 👥 **${status.connectedDriversCount}/${status.maxClients}** conectados`
+          `**Piloto:** ${flagPrefix}**${driver.name}**\n` +
+            `**Auto:** *${driver.carModel}*\n` +
+            `**Circuito:** ${status.trackName} (${status.sessionType}) • **${status.connectedDriversCount}/${status.maxClients}** conectados`
         )
         .setColor(0x2ecc71)
         .setTimestamp(new Date());
@@ -227,26 +223,12 @@ export class MonitorService {
         joinEmbed.setThumbnail(status.trackPreviewUrl);
       }
 
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setLabel('Entrar a Pista')
-          .setStyle(ButtonStyle.Link)
-          .setURL(buttonJoinUrl)
-          .setEmoji('🏎️'),
-        new ButtonBuilder()
-          .setLabel('Live Timing Web')
-          .setStyle(ButtonStyle.Link)
-          .setURL(liveTimingWebUrl)
-          .setEmoji('📊')
-      );
-
       try {
         await (alertChannel as TextChannel).send({
           embeds: [joinEmbed],
-          components: [row],
         });
         console.log(
-          `🏎️ Aviso de ingreso enviado: ${driver.name} (${driver.carModel})`
+          `Aviso de ingreso enviado: ${driver.name} (${driver.carModel})`
         );
       } catch (error) {
         console.error('❌ Error al enviar aviso de ingreso de piloto:', error);
@@ -345,7 +327,6 @@ export class MonitorService {
     const latestResult = await emperorService.getLatestSessionResult();
     if (!latestResult) return;
 
-    // Si todavía no teníamos guardado ningún archivo, guardamos el actual como referencia inicial
     if (!this.lastResultFile) {
       this.lastResultFile = latestResult.fileName;
       await this.savePersistedState();
@@ -388,6 +369,11 @@ export class MonitorService {
       if (data.lastResultFile) {
         this.lastResultFile = data.lastResultFile;
       }
+      if (data.connectedDrivers) {
+        this.previousConnectedDrivers = new Map(
+          Object.entries(data.connectedDrivers)
+        );
+      }
     } catch {
       // Archivo aún no existe
     }
@@ -399,6 +385,7 @@ export class MonitorService {
       const state: PersistedBotState = {
         statusMessageId: this.statusMessageId ?? undefined,
         lastResultFile: this.lastResultFile ?? undefined,
+        connectedDrivers: Object.fromEntries(this.previousConnectedDrivers),
       };
       await writeFile(STATE_FILE_PATH, JSON.stringify(state, null, 2), 'utf-8');
     } catch (error) {
