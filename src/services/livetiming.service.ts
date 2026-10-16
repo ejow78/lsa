@@ -150,8 +150,8 @@ export class LiveTimingService {
               .join('; ')
           : pageResp.headers.get('set-cookie') ?? '';
 
-      // @ts-expect-error Node 22 native WebSocket accepts headers in options
-      const ws = new WebSocket(wsUrl, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ws: WebSocket = new (WebSocket as any)(wsUrl, {
         headers: {
           Cookie: cookies,
           Origin: baseWeb,
