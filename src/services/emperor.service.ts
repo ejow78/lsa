@@ -66,6 +66,76 @@ export interface ChampionshipSummary {
   events: ChampionshipEventSummary[];
 }
 
+export interface SessionStandingEntry {
+  position: number;
+  driverName: string;
+  carModel: string;
+  bestLapMs: number;
+  bestLapFormatted: string;
+  gapFormatted: string;
+  numLaps: number;
+  incidentsCount: number;
+}
+
+export interface SessionResultSummary {
+  fileName: string;
+  webUrl: string;
+  trackName: string;
+  trackPreviewUrl: string;
+  sessionType: string;
+  dateFormatted: string;
+  standings: SessionStandingEntry[];
+  fastestLap?: {
+    driverName: string;
+    carModel: string;
+    lapFormatted: string;
+  };
+  totalLaps: number;
+  totalIncidents: number;
+}
+
+export interface HotlapEntry {
+  rank: number;
+  driverName: string;
+  carModel: string;
+  bestLapMs: number;
+  bestLapFormatted: string;
+  gapFormatted: string;
+  tyre?: string;
+  lapsCount: number;
+}
+
+export interface TrackHotlapsSummary {
+  trackName: string;
+  trackPreviewUrl: string;
+  entries: HotlapEntry[];
+  sessionsAnalyzed: number;
+}
+
+export interface DriverCarStat {
+  carModel: string;
+  bestLapMs: number;
+  bestLapFormatted: string;
+  lapsCount: number;
+  cleanLapsCount: number;
+}
+
+export interface DriverProfileSummary {
+  found: boolean;
+  driverName: string;
+  trackName: string;
+  trackPreviewUrl: string;
+  bestLapFormatted: string;
+  bestLapCar: string;
+  optimalLapFormatted?: string;
+  bestSectorsFormatted?: [string, string, string];
+  totalLaps: number;
+  cleanLaps: number;
+  totalIncidents: number;
+  carsUsed: DriverCarStat[];
+  availableDrivers: string[];
+}
+
 export interface ServerLiveStatus {
   online: boolean;
   serverName: string;
@@ -170,42 +240,64 @@ interface RawChampionshipExport {
   }>;
 }
 
+interface RawResultJson {
+  TrackName?: string;
+  TrackConfig?: string;
+  Type?: string;
+  Date?: string;
+  Result?: Array<{
+    DriverName?: string;
+    DriverGuid?: string;
+    CarModel?: string;
+    BestLap?: number;
+    TotalTime?: number;
+    NumLaps?: number;
+  }>;
+  Laps?: Array<{
+    DriverName?: string;
+    DriverGuid?: string;
+    CarModel?: string;
+    LapTime?: number;
+    Sectors?: number[];
+    Cuts?: number;
+    Tyre?: string;
+  }>;
+  Events?: Array<{
+    Type?: string;
+    ImpactSpeed?: number;
+    Driver?: {
+      Name?: string;
+      Guid?: string;
+    };
+  }>;
+}
+
 export class EmperorService {
   private mockCycleIndex = 0;
 
-  /**
-   * Genera el enlace directo del protocolo nativo de Content Manager (acmanager://).
-   */
   public getContentManagerProtocolLink(): string {
     return `acmanager://race/online/join?ip=${env.EMPEROR_IP_OR_DOMAIN}&httpPort=${env.joinHttpPort}`;
   }
 
-  /**
-   * Genera el enlace HTTPS oficial de redirección de Content Manager (compatible con botones de Discord).
-   */
   public getContentManagerJoinButtonUrl(): string {
     return `https://acstuff.ru/s/q:race/online/join?httpPort=${env.joinHttpPort}&ip=${env.EMPEROR_IP_OR_DOMAIN}`;
   }
 
-  /**
-   * Genera la URL de la página web de Live Timing de Emperor Servers.
-   */
   public getLiveTimingWebUrl(): string {
     const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
     return `${base}/live-timing`;
   }
 
-  /**
-   * Genera la URL de la página de Campeonatos de Emperor Servers.
-   */
   public getChampionshipsWebUrl(): string {
     const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
     return `${base}/championships`;
   }
 
-  /**
-   * Genera la URL de la foto de vista previa del circuito alojada en Emperor Servers.
-   */
+  public getResultsWebUrl(): string {
+    const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+    return `${base}/results`;
+  }
+
   public getTrackPreviewImageUrl(rawTrack: string, rawConfig?: string): string {
     const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
     if (rawConfig && rawConfig.trim() !== '') {
@@ -237,9 +329,6 @@ export class EmperorService {
     return this.normalizeEmperorResponse(rawData);
   }
 
-  /**
-   * Obtiene el Entry List completo del servidor (autos asignados a pilotos y autos libres).
-   */
   public async getEntryList(): Promise<ServerEntryList> {
     const rawData = await this.fetchRawServerData();
     if (!rawData) {
@@ -315,9 +404,6 @@ export class EmperorService {
     };
   }
 
-  /**
-   * Descubre y obtiene los campeonatos activos desde Emperor Server (`/championships` y `/championship/<id>/export`).
-   */
   public async getChampionships(): Promise<ChampionshipSummary[]> {
     const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
 
@@ -418,6 +504,477 @@ export class EmperorService {
       console.error('⚠️ Error al consultar campeonatos en Emperor:', error);
       return [];
     }
+  }
+
+  /**
+   * Obtiene la lista de archivos JSON de resultados recientes en Emperor Server (`/results`).
+   */
+  public async getRecentResultFileNames(limit = 10): Promise<string[]> {
+    const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+    try {
+      const resp = await fetch(`${base}/results`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!resp.ok) return [];
+
+      const html = await resp.text();
+      const matches = [
+        ...html.matchAll(/href="\/results\/download\/([^"]+\.json)"/gi),
+      ];
+      const uniqueFiles = [...new Set(matches.map((m) => m[1]))];
+      return uniqueFiles.slice(0, limit);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Obtiene el resumen completo de la última sesión con actividad registrada en `/results`.
+   */
+  public async getLatestSessionResult(): Promise<SessionResultSummary | null> {
+    const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+    const files = await this.getRecentResultFileNames(8);
+
+    for (const fileName of files) {
+      try {
+        const resp = await fetch(`${base}/results/download/${fileName}`, {
+          headers: { Accept: 'application/json' },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!resp.ok) continue;
+
+        const data = (await resp.json()) as RawResultJson;
+        const activeResults = (data.Result ?? []).filter(
+          (r) => (r.NumLaps ?? 0) > 0 && r.DriverName && r.DriverName.trim() !== ''
+        );
+
+        if (activeResults.length === 0) continue;
+
+        // Contar incidentes por piloto
+        const incidentsByDriver = new Map<string, number>();
+        for (const ev of data.Events ?? []) {
+          const dName = ev.Driver?.Name?.trim();
+          if (dName) {
+            incidentsByDriver.set(dName, (incidentsByDriver.get(dName) ?? 0) + 1);
+          }
+        }
+
+        // Ordenar: para prácticas/qualy por mejor vuelta, para carrera por orden de Result
+        const isRace = (data.Type ?? '').toUpperCase().includes('RACE');
+        const sorted = [...activeResults].sort((a, b) => {
+          if (isRace) return 0;
+          const lapA = a.BestLap && a.BestLap > 0 ? a.BestLap : 999_999_999;
+          const lapB = b.BestLap && b.BestLap > 0 ? b.BestLap : 999_999_999;
+          return lapA - lapB;
+        });
+
+        const validBestLaps = sorted
+          .map((r) => r.BestLap ?? 0)
+          .filter((ms) => ms > 0 && ms < 900_000_000);
+        const fastestLapMs =
+          validBestLaps.length > 0 ? Math.min(...validBestLaps) : 0;
+
+        let fastestLapInfo: SessionResultSummary['fastestLap'];
+
+        const standings: SessionStandingEntry[] = sorted.map((r, idx) => {
+          const driverName = r.DriverName!.trim();
+          const carModel = this.formatIdentifier(r.CarModel ?? 'Auto');
+          const bestLapMs =
+            r.BestLap && r.BestLap > 0 && r.BestLap < 900_000_000
+              ? r.BestLap
+              : 0;
+          const bestLapFormatted =
+            bestLapMs > 0 ? this.formatLapTime(bestLapMs) : 'Sin tiempo';
+
+          let gapFormatted = '';
+          if (bestLapMs > 0 && fastestLapMs > 0) {
+            if (bestLapMs === fastestLapMs) {
+              gapFormatted = '💜 VR';
+              if (!fastestLapInfo) {
+                fastestLapInfo = {
+                  driverName,
+                  carModel,
+                  lapFormatted: bestLapFormatted,
+                };
+              }
+            } else {
+              const diffSec = ((bestLapMs - fastestLapMs) / 1000).toFixed(3);
+              gapFormatted = `+${diffSec}s`;
+            }
+          }
+
+          return {
+            position: idx + 1,
+            driverName,
+            carModel,
+            bestLapMs,
+            bestLapFormatted,
+            gapFormatted,
+            numLaps: r.NumLaps ?? 0,
+            incidentsCount: incidentsByDriver.get(driverName) ?? 0,
+          };
+        });
+
+        const rawTrack = data.TrackName ?? 'rt_bathurst';
+        const rawConfig = data.TrackConfig;
+        const pageSlug = fileName.replace(/\.json$/i, '');
+
+        return {
+          fileName,
+          webUrl: `${base}/results/${pageSlug}`,
+          trackName: this.formatIdentifier(rawTrack),
+          trackPreviewUrl: this.getTrackPreviewImageUrl(rawTrack, rawConfig),
+          sessionType: this.parseSessionType(data.Type),
+          dateFormatted: data.Date
+            ? new Date(data.Date).toLocaleString('es-AR', {
+                dateStyle: 'short',
+                timeStyle: 'short',
+              })
+            : pageSlug,
+          standings,
+          fastestLap: fastestLapInfo,
+          totalLaps: standings.reduce((acc, s) => acc + s.numLaps, 0),
+          totalIncidents: (data.Events ?? []).length,
+        };
+      } catch {
+        continue;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Construye el Leaderboard de mejores tiempos (Hotlaps) analizando las sesiones recientes.
+   * @param byCar Si es true, muestra el mejor tiempo de cada combinación Piloto + Auto. Si es false, solo el mejor tiempo absoluto de cada Piloto.
+   */
+  public async getTrackHotlaps(byCar = false): Promise<TrackHotlapsSummary | null> {
+    const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+    const files = await this.getRecentResultFileNames(12);
+    if (files.length === 0) return null;
+
+    const recordsMap = new Map<
+      string,
+      {
+        driverName: string;
+        carModel: string;
+        bestLapMs: number;
+        tyre?: string;
+        lapsCount: number;
+      }
+    >();
+
+    let targetTrackRaw = '';
+    let targetConfigRaw: string | undefined;
+    let sessionsAnalyzed = 0;
+
+    for (const fileName of files) {
+      try {
+        const resp = await fetch(`${base}/results/download/${fileName}`, {
+          headers: { Accept: 'application/json' },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!resp.ok) continue;
+
+        const data = (await resp.json()) as RawResultJson;
+        if (!data.TrackName) continue;
+
+        if (!targetTrackRaw) {
+          targetTrackRaw = data.TrackName;
+          targetConfigRaw = data.TrackConfig;
+        } else if (data.TrackName !== targetTrackRaw) {
+          // Solo comparamos tiempos del mismo circuito activo
+          continue;
+        }
+
+        sessionsAnalyzed++;
+
+        // Analizar vuelta por vuelta (priorizando vueltas limpias Cuts === 0)
+        for (const lap of data.Laps ?? []) {
+          const driverName = lap.DriverName?.trim();
+          const lapMs = lap.LapTime ?? 0;
+          if (!driverName || lapMs <= 0 || lapMs > 900_000_000) continue;
+
+          const carModel = this.formatIdentifier(lap.CarModel ?? 'Auto');
+          const key = byCar ? `${driverName}:::${carModel}` : driverName;
+
+          const existing = recordsMap.get(key);
+          const isClean = (lap.Cuts ?? 0) === 0;
+
+          if (!existing) {
+            recordsMap.set(key, {
+              driverName,
+              carModel,
+              bestLapMs: isClean ? lapMs : 999_999_999,
+              tyre: lap.Tyre,
+              lapsCount: 1,
+            });
+          } else {
+            existing.lapsCount++;
+            if (isClean && lapMs < existing.bestLapMs) {
+              existing.bestLapMs = lapMs;
+              existing.carModel = carModel;
+              existing.tyre = lap.Tyre;
+            }
+          }
+        }
+
+        // Respaldo con Result por si alguna sesión no detalló Laps
+        for (const res of data.Result ?? []) {
+          const driverName = res.DriverName?.trim();
+          const bestMs = res.BestLap ?? 0;
+          if (!driverName || bestMs <= 0 || bestMs > 900_000_000) continue;
+
+          const carModel = this.formatIdentifier(res.CarModel ?? 'Auto');
+          const key = byCar ? `${driverName}:::${carModel}` : driverName;
+          const existing = recordsMap.get(key);
+
+          if (!existing) {
+            recordsMap.set(key, {
+              driverName,
+              carModel,
+              bestLapMs: bestMs,
+              lapsCount: res.NumLaps ?? 1,
+            });
+          } else if (bestMs < existing.bestLapMs) {
+            existing.bestLapMs = bestMs;
+            existing.carModel = carModel;
+          }
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    const validRecords = [...recordsMap.values()]
+      .filter((r) => r.bestLapMs > 0 && r.bestLapMs < 900_000_000)
+      .sort((a, b) => a.bestLapMs - b.bestLapMs);
+
+    const fastestMs = validRecords[0]?.bestLapMs ?? 0;
+
+    const entries: HotlapEntry[] = validRecords.map((rec, idx) => {
+      const diffSec =
+        idx === 0
+          ? '👑 Récord'
+          : `+${((rec.bestLapMs - fastestMs) / 1000).toFixed(3)}s`;
+
+      return {
+        rank: idx + 1,
+        driverName: rec.driverName,
+        carModel: rec.carModel,
+        bestLapMs: rec.bestLapMs,
+        bestLapFormatted: this.formatLapTime(rec.bestLapMs),
+        gapFormatted: diffSec,
+        tyre: rec.tyre,
+        lapsCount: rec.lapsCount,
+      };
+    });
+
+    const rawTrack = targetTrackRaw || 'rt_bathurst';
+    return {
+      trackName: this.formatIdentifier(rawTrack),
+      trackPreviewUrl: this.getTrackPreviewImageUrl(rawTrack, targetConfigRaw),
+      entries,
+      sessionsAnalyzed,
+    };
+  }
+
+  /**
+   * Construye la ficha de telemetría detallada de un piloto (vueltas, autos probados, vuelta óptima e incidentes).
+   */
+  public async getDriverProfile(
+    queryName?: string
+  ): Promise<DriverProfileSummary | null> {
+    const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+    const files = await this.getRecentResultFileNames(12);
+    if (files.length === 0) return null;
+
+    const allDriversSet = new Set<string>();
+    const parsedSessions: RawResultJson[] = [];
+    let targetTrackRaw = '';
+    let targetConfigRaw: string | undefined;
+
+    for (const fileName of files) {
+      try {
+        const resp = await fetch(`${base}/results/download/${fileName}`, {
+          headers: { Accept: 'application/json' },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!resp.ok) continue;
+
+        const data = (await resp.json()) as RawResultJson;
+        if (!data.TrackName) continue;
+
+        if (!targetTrackRaw) {
+          targetTrackRaw = data.TrackName;
+          targetConfigRaw = data.TrackConfig;
+        } else if (data.TrackName !== targetTrackRaw) {
+          continue;
+        }
+
+        parsedSessions.push(data);
+
+        for (const lap of data.Laps ?? []) {
+          if (lap.DriverName?.trim()) {
+            allDriversSet.add(lap.DriverName.trim());
+          }
+        }
+        for (const res of data.Result ?? []) {
+          if ((res.NumLaps ?? 0) > 0 && res.DriverName?.trim()) {
+            allDriversSet.add(res.DriverName.trim());
+          }
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    const availableDrivers = [...allDriversSet];
+    const rawTrack = targetTrackRaw || 'rt_bathurst';
+    const trackName = this.formatIdentifier(rawTrack);
+    const trackPreviewUrl = this.getTrackPreviewImageUrl(
+      rawTrack,
+      targetConfigRaw
+    );
+
+    if (availableDrivers.length === 0) {
+      return null;
+    }
+
+    // Buscar coincidencia parcial (insensible a mayúsculas/acentos) o elegir el primero si no se pasó nombre
+    const normalizeStr = (s: string) =>
+      s
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    const matchedDriver = queryName
+      ? availableDrivers.find((d) =>
+          normalizeStr(d).includes(normalizeStr(queryName))
+        )
+      : availableDrivers[0];
+
+    if (!matchedDriver) {
+      return {
+        found: false,
+        driverName: queryName ?? '',
+        trackName,
+        trackPreviewUrl,
+        bestLapFormatted: '--:--',
+        bestLapCar: '-',
+        totalLaps: 0,
+        cleanLaps: 0,
+        totalIncidents: 0,
+        carsUsed: [],
+        availableDrivers,
+      };
+    }
+
+    let totalLaps = 0;
+    let cleanLaps = 0;
+    let totalIncidents = 0;
+    let bestLapMs = 999_999_999;
+    let bestLapCar = '-';
+    const bestSectors: [number, number, number] = [
+      999_999_999,
+      999_999_999,
+      999_999_999,
+    ];
+
+    const carsMap = new Map<
+      string,
+      { bestLapMs: number; lapsCount: number; cleanLapsCount: number }
+    >();
+
+    for (const session of parsedSessions) {
+      for (const ev of session.Events ?? []) {
+        if (ev.Driver?.Name?.trim() === matchedDriver) {
+          totalIncidents++;
+        }
+      }
+
+      for (const lap of session.Laps ?? []) {
+        if (lap.DriverName?.trim() !== matchedDriver) continue;
+
+        const lapMs = lap.LapTime ?? 0;
+        const isClean = (lap.Cuts ?? 0) === 0;
+        const carModel = this.formatIdentifier(lap.CarModel ?? 'Auto');
+
+        totalLaps++;
+        if (isClean) cleanLaps++;
+
+        const carStat = carsMap.get(carModel) ?? {
+          bestLapMs: 999_999_999,
+          lapsCount: 0,
+          cleanLapsCount: 0,
+        };
+        carStat.lapsCount++;
+        if (isClean) {
+          carStat.cleanLapsCount++;
+          if (lapMs > 0 && lapMs < carStat.bestLapMs) {
+            carStat.bestLapMs = lapMs;
+          }
+          if (lapMs > 0 && lapMs < bestLapMs) {
+            bestLapMs = lapMs;
+            bestLapCar = carModel;
+          }
+          if (lap.Sectors && lap.Sectors.length === 3) {
+            if (lap.Sectors[0] > 0 && lap.Sectors[0] < bestSectors[0]) {
+              bestSectors[0] = lap.Sectors[0];
+            }
+            if (lap.Sectors[1] > 0 && lap.Sectors[1] < bestSectors[1]) {
+              bestSectors[1] = lap.Sectors[1];
+            }
+            if (lap.Sectors[2] > 0 && lap.Sectors[2] < bestSectors[2]) {
+              bestSectors[2] = lap.Sectors[2];
+            }
+          }
+        }
+        carsMap.set(carModel, carStat);
+      }
+    }
+
+    const hasValidSectors = bestSectors.every((s) => s < 900_000_000);
+    const optimalLapMs = hasValidSectors
+      ? bestSectors[0] + bestSectors[1] + bestSectors[2]
+      : 0;
+
+    const carsUsed: DriverCarStat[] = [...carsMap.entries()]
+      .map(([carModel, stat]) => ({
+        carModel,
+        bestLapMs: stat.bestLapMs,
+        bestLapFormatted:
+          stat.bestLapMs < 900_000_000
+            ? this.formatLapTime(stat.bestLapMs)
+            : 'Sin vuelta limpia',
+        lapsCount: stat.lapsCount,
+        cleanLapsCount: stat.cleanLapsCount,
+      }))
+      .sort((a, b) => a.bestLapMs - b.bestLapMs);
+
+    return {
+      found: true,
+      driverName: matchedDriver,
+      trackName,
+      trackPreviewUrl,
+      bestLapFormatted:
+        bestLapMs < 900_000_000 ? this.formatLapTime(bestLapMs) : 'Sin tiempo',
+      bestLapCar,
+      optimalLapFormatted:
+        optimalLapMs > 0 ? this.formatLapTime(optimalLapMs) : undefined,
+      bestSectorsFormatted: hasValidSectors
+        ? [
+            (bestSectors[0] / 1000).toFixed(3) + 's',
+            (bestSectors[1] / 1000).toFixed(3) + 's',
+            (bestSectors[2] / 1000).toFixed(3) + 's',
+          ]
+        : undefined,
+      totalLaps,
+      cleanLaps,
+      totalIncidents,
+      carsUsed,
+      availableDrivers,
+    };
   }
 
   private async fetchRawServerData(): Promise<RawEmperorLiveTimings | null> {
@@ -567,7 +1124,7 @@ export class EmperorService {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
 
-  private formatLapTime(lapMs: number): string {
+  public formatLapTime(lapMs: number): string {
     const ms = lapMs > 10_000_000 ? Math.floor(lapMs / 1_000_000) : lapMs;
     const minutes = Math.floor(ms / 60000);
     const seconds = Math.floor((ms % 60000) / 1000);
@@ -611,7 +1168,7 @@ export class EmperorService {
             name: 'Javier Weimann',
             carModel: 'Lamborghini Huracan GT3 Evo2',
             nation: 'ARG',
-            bestLap: '2:04.412',
+            bestLap: '2:03.321',
           },
         ],
       },
@@ -632,19 +1189,19 @@ export class EmperorService {
             name: 'Javier Weimann',
             carModel: 'Lamborghini Huracan GT3 Evo2',
             nation: 'ARG',
-            bestLap: '2:03.890',
+            bestLap: '2:03.321',
           },
           {
             name: 'Alonso Cabezas',
             carModel: 'Porsche 992 GT3 R',
             nation: 'CHL',
-            bestLap: '2:04.105',
+            bestLap: '2:04.823',
           },
           {
             name: 'JotaEme Fernández',
             carModel: 'Mercedes AMG GT3 Evo',
             nation: 'CHL',
-            bestLap: '2:04.550',
+            bestLap: '2:05.110',
           },
         ],
       },

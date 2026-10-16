@@ -8,6 +8,7 @@ import { env } from '../config/env.js';
 import {
   emperorService,
   type ServerLiveStatus,
+  type SessionResultSummary,
 } from '../services/emperor.service.js';
 
 const COLOR_ACTIVE_GREEN = 0x2ecc71;
@@ -125,6 +126,66 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
       .setStyle(ButtonStyle.Link)
       .setURL(liveTimingWebUrl)
       .setEmoji('📊')
+  );
+
+  return { embeds: [embed], components: [row] };
+}
+
+/**
+ * Construye el Embed de resultados de una sesión finalizada (Practice, Qualy o Race).
+ */
+export function buildSessionResultMessagePayload(result: SessionResultSummary): {
+  embeds: [EmbedBuilder];
+  components: [ActionRowBuilder<ButtonBuilder>];
+} {
+  const medals = ['🥇', '🥈', '🥉'];
+
+  const standingsText = result.standings
+    .slice(0, 15)
+    .map((entry, idx) => {
+      const prefix =
+        idx < 3
+          ? medals[idx]
+          : `\`${String(entry.position).padStart(2, '0')}.\``;
+      const gapStr = entry.gapFormatted ? ` (${entry.gapFormatted})` : '';
+      const incStr =
+        entry.incidentsCount > 0 ? ` • 💥 ${entry.incidentsCount} inc.` : '';
+      return `${prefix} **${entry.driverName}** — *${entry.carModel}*\n└ ⏱️ \`${entry.bestLapFormatted}\`${gapStr} • 🔄 ${entry.numLaps} vtas${incStr}`;
+    })
+    .join('\n');
+
+  const fastestLapLine = result.fastestLap
+    ? `\n💜 **Vuelta Rápida:** **${result.fastestLap.driverName}** (\`${result.fastestLap.lapFormatted}\` — *${result.fastestLap.carModel}*)`
+    : '';
+
+  const embed = new EmbedBuilder()
+    .setTitle(`🏁 Resultados de ${result.sessionType} — ${result.trackName}`)
+    .setURL(result.webUrl)
+    .setDescription(
+      `📅 **Fecha:** ${result.dateFormatted}\n` +
+        `🔄 **Vueltas totales:** ${result.totalLaps} • 💥 **Incidentes:** ${result.totalIncidents}${fastestLapLine}`
+    )
+    .setColor(0x9b59b6)
+    .addFields({
+      name: `📊 Clasificación (${result.standings.length} registros)`,
+      value: standingsText || '*Sin tiempos registrados.*',
+      inline: false,
+    })
+    .setThumbnail(result.trackPreviewUrl)
+    .setTimestamp(new Date())
+    .setFooter({ text: 'LATAM SimRacing Alliance • Telemetría Oficial' });
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setLabel('Ver Telemetría Completa en Web')
+      .setStyle(ButtonStyle.Link)
+      .setURL(result.webUrl)
+      .setEmoji('📈'),
+    new ButtonBuilder()
+      .setLabel('Todos los Resultados')
+      .setStyle(ButtonStyle.Link)
+      .setURL(emperorService.getResultsWebUrl())
+      .setEmoji('🗂️')
   );
 
   return { embeds: [embed], components: [row] };
