@@ -536,7 +536,7 @@ export class LiveTimingService {
         this.carIdToGuid.set(carId, guid);
 
         const spline = Number(d.NormalisedSplinePos ?? 0);
-        const steerAngle = Number(d.SteerAngle ?? 0);
+        const steerAngle = Number(d.SteerAngle ?? 127);
 
         this.driversByGuid.set(guid, {
           guid,
@@ -557,7 +557,7 @@ export class LiveTimingService {
           maxRpm: 8000,
           rpmPct: 0,
           steerAngle,
-          steerDeg: Math.round(steerAngle * 1.417),
+          steerDeg: steerAngle === 0 ? 0 : Math.round((steerAngle - 127) * 1.4173),
           throttlePct: 0,
           brakePct: 0,
           longitudinalG: 0,
