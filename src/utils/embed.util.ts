@@ -169,9 +169,17 @@ export function buildSessionResultMessagePayload(result: SessionResultSummary): 
     .setTimestamp(new Date())
     .setFooter({ text: 'LATAM SimRacing Alliance • Telemetría Oficial' });
 
+  const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+  const replaySlug = result.fileName.replace(/\.json$/i, '');
+  const replayUrl = `${base}/results/download/${replaySlug}.acreplay`;
+
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setLabel('Ver Telemetría Completa en Web')
+      .setLabel('📥 Descargar Replay')
+      .setStyle(ButtonStyle.Link)
+      .setURL(replayUrl),
+    new ButtonBuilder()
+      .setLabel('Ver Telemetría en Web')
       .setStyle(ButtonStyle.Link)
       .setURL(result.webUrl),
     new ButtonBuilder()

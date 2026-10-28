@@ -19,6 +19,9 @@ const envSchema = z.object({
   STATUS_CHANNEL_ID: z.string().min(1, 'STATUS_CHANNEL_ID es obligatorio'),
   ALERT_CHANNEL_ID: z.string().min(1, 'ALERT_CHANNEL_ID es obligatorio'),
   ALERT_ROLE_ID: z.string().min(1, 'ALERT_ROLE_ID es obligatorio'),
+  MOD_ROLE_ID: z.string().default('1529967623864062002'),
+  STEWARDS_CHANNEL_ID: z.string().optional(),
+  SANCTIONS_CHANNEL_ID: z.string().optional(),
   POLLING_INTERVAL_SECONDS: z.coerce.number().int().min(10).default(30),
   WEB_PORT: z.coerce.number().int().positive().default(3000),
   ADMIN_PASSWORD: z.string().min(1).default('LaTaM2026'),
@@ -44,5 +47,11 @@ export const env = {
   /** Puerto HTTP usado para el link de entrada en Content Manager */
   get joinHttpPort(): number {
     return parsedEnv.data.AC_JOIN_HTTP_PORT ?? parsedEnv.data.EMPEROR_HTTP_PORT;
+  },
+  get stewardsChannelId(): string {
+    return parsedEnv.data.STEWARDS_CHANNEL_ID || parsedEnv.data.ALERT_CHANNEL_ID;
+  },
+  get sanctionsChannelId(): string {
+    return parsedEnv.data.SANCTIONS_CHANNEL_ID || parsedEnv.data.ALERT_CHANNEL_ID;
   },
 };

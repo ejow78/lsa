@@ -8,6 +8,10 @@ import { tiemposCommand } from './tiempos.command.js';
 import { resultadosCommand } from './resultados.command.js';
 import { pilotoCommand } from './piloto.command.js';
 import { tablaCommand } from './tabla.command.js';
+import { encuestaCommand } from './encuesta.command.js';
+import { replayCommand } from './replay.command.js';
+import { licenciaCommand } from './licencia.command.js';
+import { reportarCommand } from './reportar.command.js';
 
 export const commandsList: SlashCommand[] = [
   servidorCommand,
@@ -18,6 +22,10 @@ export const commandsList: SlashCommand[] = [
   resultadosCommand,
   pilotoCommand,
   tablaCommand,
+  encuestaCommand,
+  replayCommand,
+  licenciaCommand,
+  reportarCommand,
 ];
 
 export const commandsCollection = new Collection<string, SlashCommand>();
