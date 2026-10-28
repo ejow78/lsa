@@ -76,7 +76,7 @@ export function registerInteractionCreateEvent(client: Client): void {
           const stewardsChannel = await client.channels.fetch(env.stewardsChannelId).catch(() => null);
           if (stewardsChannel && stewardsChannel.isTextBased()) {
             const stewardEmbed = new EmbedBuilder()
-              .setTitle(`🏁 Nuevo Reporte de Incidente • ${report.id}`)
+              .setTitle(`Reporte de Incidente • ${report.id}`)
               .setColor(0xe74c3c)
               .setDescription(
                 `**Denunciante:** <@${interaction.user.id}> (${interaction.user.username})\n` +
@@ -91,11 +91,11 @@ export function registerInteractionCreateEvent(client: Client): void {
             const buttonsRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
               new ButtonBuilder()
                 .setCustomId(`steward_penalize_${report.id}`)
-                .setLabel('⚖️ Sancionar')
+                .setLabel('Sancionar')
                 .setStyle(ButtonStyle.Danger),
               new ButtonBuilder()
                 .setCustomId(`steward_dismiss_${report.id}`)
-                .setLabel('🟢 Desestimar')
+                .setLabel('Desestimar')
                 .setStyle(ButtonStyle.Secondary),
               new ButtonBuilder()
                 .setLabel('Ver Video')
@@ -114,7 +114,7 @@ export function registerInteractionCreateEvent(client: Client): void {
 
         await interaction.reply({
           content:
-            `✅ **Tu denuncia ha sido registrada con el código \`${report.id}\`.**\n` +
+            `Tu denuncia ha sido registrada con el código **\`${report.id}\`**.\n` +
             `Los comisarios deportivos analizarán el video y los datos de telemetría a la brevedad.`,
           ephemeral: true,
         });
@@ -135,7 +135,7 @@ export function registerInteractionCreateEvent(client: Client): void {
         );
 
         if (!report) {
-          await interaction.reply({ content: '❌ Reporte no encontrado.', ephemeral: true });
+          await interaction.reply({ content: 'Reporte no encontrado.', ephemeral: true });
           return;
         }
 
@@ -145,7 +145,7 @@ export function registerInteractionCreateEvent(client: Client): void {
             const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
               .setColor(0x9b59b6)
               .addFields({
-                name: '⚖️ RESOLUCIÓN OFICIAL (SANCIÓN APLICADA)',
+                name: 'RESOLUCIÓN OFICIAL (SANCIÓN APLICADA)',
                 value: `**Comisario:** <@${interaction.user.id}>\n**Sanción:** \`${penaltyApplied}\`\n**Motivo:** ${penaltyReason}`,
               });
 
@@ -163,7 +163,7 @@ export function registerInteractionCreateEvent(client: Client): void {
           const sanctionsChannel = await client.channels.fetch(env.sanctionsChannelId).catch(() => null);
           if (sanctionsChannel && sanctionsChannel.isTextBased()) {
             const publicEmbed = new EmbedBuilder()
-              .setTitle(`⚖️ Veredicto de Comisariato • Caso ${report.id}`)
+              .setTitle(`Veredicto de Comisariato • Caso ${report.id}`)
               .setColor(0xe74c3c)
               .setDescription(
                 `**Piloto / Auto Sancionado:** \`${report.accused}\`\n` +
@@ -182,7 +182,7 @@ export function registerInteractionCreateEvent(client: Client): void {
         }
 
         await interaction.reply({
-          content: `✅ Sanción para el reporte **${reportId}** aplicada y publicada correctamente.`,
+          content: `Sanción para el reporte **${reportId}** aplicada y publicada correctamente.`,
           ephemeral: true,
         });
         return;
@@ -207,7 +207,7 @@ export function registerInteractionCreateEvent(client: Client): void {
 
         if (!hasModRole && !isAdmin) {
           await interaction.reply({
-            content: '❌ Solo los comisarios deportivos y moderadores pueden resolver incidentes.',
+            content: 'Solo los comisarios deportivos y moderadores pueden resolver incidentes.',
             ephemeral: true,
           });
           return;
@@ -224,7 +224,7 @@ export function registerInteractionCreateEvent(client: Client): void {
           );
 
           if (!report) {
-            await interaction.reply({ content: '❌ Reporte no encontrado.', ephemeral: true });
+            await interaction.reply({ content: 'Reporte no encontrado.', ephemeral: true });
             return;
           }
 
@@ -232,7 +232,7 @@ export function registerInteractionCreateEvent(client: Client): void {
             const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
               .setColor(0x2ecc71)
               .addFields({
-                name: '🟢 RESOLUCIÓN OFICIAL (DESESTIMADO)',
+                name: 'RESOLUCIÓN OFICIAL (DESESTIMADO)',
                 value: `**Comisario:** <@${interaction.user.id}>\n**Dictamen:** Lance de carrera / No punible. Caso cerrado sin sanción.`,
               });
 
@@ -243,7 +243,7 @@ export function registerInteractionCreateEvent(client: Client): void {
           }
 
           await interaction.reply({
-            content: `✅ Reporte **${reportId}** desestimado como lance de carrera.`,
+            content: `Reporte **${reportId}** desestimado como lance de carrera.`,
             ephemeral: true,
           });
           return;

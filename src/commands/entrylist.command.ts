@@ -60,11 +60,11 @@ export const entrylistCommand: SlashCommand = {
 
     const assignedLines: string[] = [];
     for (const [driverName, info] of driversMap.entries()) {
-      const statusDot = info.isConnected ? '🟢' : '⚪';
+      const statusBadge = info.isConnected ? '[En pista]' : '[Ausente]';
       const flag = emperorService.formatNationFlag(info.nation);
       const flagBadge = flag ? ` ${flag}` : '';
       assignedLines.push(
-        `${statusDot}${flagBadge} **${driverName}**\n└ ${info.cars.join(' • ')}`
+        `${statusBadge}${flagBadge} **${driverName}**\n└ ${info.cars.join(' • ')}`
       );
     }
 

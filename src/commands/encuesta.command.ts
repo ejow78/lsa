@@ -83,7 +83,7 @@ export const encuestaCommand: SlashCommand = {
     if (!hasModRole && !isAdmin) {
       await interaction.reply({
         content:
-          '❌ No tienes permisos para crear encuestas. Esta función está reservada para moderadores y administradores.',
+          'No tienes permisos para crear encuestas. Esta función está reservada para moderadores y administradores.',
         ephemeral: true,
       });
       return;
@@ -104,7 +104,7 @@ export const encuestaCommand: SlashCommand = {
 
     if (answers.length < 2) {
       await interaction.reply({
-        content: '❌ Debes ingresar al menos 2 opciones para la encuesta.',
+        content: 'Debes ingresar al menos 2 opciones para la encuesta.',
         ephemeral: true,
       });
       return;
@@ -113,7 +113,7 @@ export const encuestaCommand: SlashCommand = {
     const channel = interaction.channel;
     if (!channel || !('send' in channel)) {
       await interaction.reply({
-        content: '❌ No se puede enviar la encuesta en este canal.',
+        content: 'No se puede enviar la encuesta en este canal.',
         ephemeral: true,
       });
       return;
@@ -131,13 +131,13 @@ export const encuestaCommand: SlashCommand = {
       });
 
       await interaction.reply({
-        content: `✅ ¡Encuesta creada con éxito! Duración: **${duracion}h** | Múltiple: **${seleccionMultiple ? 'Sí' : 'No'}**`,
+        content: `Encuesta creada con éxito. Duración: **${duracion}h** | Selección múltiple: **${seleccionMultiple ? 'Sí' : 'No'}**`,
         ephemeral: true,
       });
     } catch (err) {
       console.error('Error al enviar la encuesta nativa:', err);
       await interaction.reply({
-        content: '❌ Error al publicar la encuesta. Asegúrate de que el bot tenga permisos para enviar mensajes y encuestas en este canal.',
+        content: 'Error al publicar la encuesta. Asegúrate de que el bot tenga permisos para enviar mensajes y encuestas en este canal.',
         ephemeral: true,
       });
     }

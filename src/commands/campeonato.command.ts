@@ -74,7 +74,7 @@ export const campeonatoCommand: SlashCommand = {
       );
 
       const registrationMode = champ.openEntrants
-        ? '🟢 Grilla Abierta (Entrada libre)'
+        ? 'Grilla Abierta (Entrada libre)'
         : champ.signUpEnabled
           ? 'Inscripción por Formulario Web'
           : 'Lista Cerrada';

@@ -22,13 +22,13 @@ export const replayCommand: SlashCommand = {
 
     if (!fileNames || fileNames.length === 0) {
       await interaction.editReply({
-        content: '⚠️ No se encontraron archivos de sesiones ni repeticiones recientes en el servidor.',
+        content: 'No se encontraron archivos de sesiones ni repeticiones recientes en el servidor.',
       });
       return;
     }
 
     const embed = new EmbedBuilder()
-      .setTitle('🎬 Repeticiones de Servidor Assetto Corsa (.acreplay)')
+      .setTitle('Repeticiones de Servidor Assetto Corsa (.acreplay)')
       .setColor(0xe67e22)
       .setDescription(
         'Descarga el archivo `.acreplay` y colócalo en tu carpeta:\n' +
@@ -48,7 +48,7 @@ export const replayCommand: SlashCommand = {
 
       embed.addFields({
         name: `Sesión #${index + 1}: ${prettyName}`,
-        value: `[📥 Descargar .acreplay](${downloadUrl}) • [📊 Ver Resumen Web](${base}/results/${slug})`,
+        value: `[Descargar .acreplay](${downloadUrl}) • [Ver Resumen Web](${base}/results/${slug})`,
         inline: false,
       });
 

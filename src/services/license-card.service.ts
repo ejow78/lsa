@@ -81,10 +81,10 @@ export async function generateDriverLicenseCard(
   if (!avatarLoaded) {
     ctx.fillStyle = '#1e293b';
     ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
-    ctx.font = 'bold 50px sans-serif';
+    ctx.font = 'bold 45px sans-serif';
     ctx.fillStyle = '#94a3b8';
     ctx.textAlign = 'center';
-    ctx.fillText('🏎️', avatarX + avatarSize / 2, avatarY + avatarSize / 2 + 18);
+    ctx.fillText(profile.driverName.charAt(0).toUpperCase() || 'P', avatarX + avatarSize / 2, avatarY + avatarSize / 2 + 16);
     ctx.textAlign = 'start';
   }
   ctx.restore();
@@ -116,14 +116,14 @@ export async function generateDriverLicenseCard(
     : 100;
 
   let badgeColor = '#22c55e';
-  let badgeTitle = 'PILOTO PRO ★★★';
+  let badgeTitle = 'PILOTO PRO';
   if (cleanRate < 75 || profile.totalLaps < 15) {
     badgeColor = '#f59e0b';
-    badgeTitle = 'PILOTO CLUB ★★';
+    badgeTitle = 'PILOTO CLUB';
   }
   if (cleanRate < 55) {
     badgeColor = '#ef4444';
-    badgeTitle = 'PILOTO ROOKIE ★';
+    badgeTitle = 'PILOTO ROOKIE';
   }
 
   ctx.fillStyle = badgeColor;

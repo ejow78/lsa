@@ -37,7 +37,7 @@ export const licenciaCommand: SlashCommand = {
 
     if (!profile) {
       await interaction.editReply({
-        content: '⚠️ No hay datos de sesiones ni pilotos registrados todavía en el servidor.',
+        content: 'No hay datos de sesiones ni pilotos registrados todavía en el servidor.',
       });
       return;
     }
@@ -46,7 +46,7 @@ export const licenciaCommand: SlashCommand = {
       const list = profile.availableDrivers.slice(0, 8).map((d) => `• \`${d}\``).join('\n');
       await interaction.editReply({
         content:
-          `❌ No se encontró telemetría para el piloto **"${queryName}"** en las sesiones recientes.\n\n` +
+          `No se encontró telemetría para el piloto **"${queryName}"** en las sesiones recientes.\n\n` +
           `**Pilotos con datos recientes:**\n${list}\n\n*Prueba usando \`/licencia nombre:TuNombreExacto\`*`,
       });
       return;
@@ -59,7 +59,7 @@ export const licenciaCommand: SlashCommand = {
       const attachment = new AttachmentBuilder(buffer, { name: 'superlicencia.png' });
 
       const embed = new EmbedBuilder()
-        .setTitle(`🏁 Superlicencia Oficial — ${profile.driverName}`)
+        .setTitle(`Superlicencia Oficial — ${profile.driverName}`)
         .setDescription(
           `**Piloto:** ${profile.driverName}\n` +
           `**Circuito:** ${profile.trackName}\n` +
@@ -78,7 +78,7 @@ export const licenciaCommand: SlashCommand = {
     } catch (err) {
       console.error('Error generando la tarjeta gráfica de licencia:', err);
       await interaction.editReply({
-        content: '❌ Ocurrió un error al generar la tarjeta gráfica de licencia.',
+        content: 'Ocurrió un error al generar la tarjeta gráfica de licencia.',
       });
     }
   },

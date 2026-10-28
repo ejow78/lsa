@@ -52,7 +52,7 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
 
   const isActive = status.connectedDriversCount > 0;
   const embedColor = isActive ? COLOR_ACTIVE_GREEN : COLOR_EMPTY_GREY;
-  const statusIndicator = isActive ? '🟢 Pista Activa' : '⚪ Pista Vacía';
+  const statusIndicator = isActive ? 'Pista Activa' : 'Pista Vacía';
 
   const fullTrackTitle = status.trackConfig
     ? `${status.trackName} (${status.trackConfig})`
