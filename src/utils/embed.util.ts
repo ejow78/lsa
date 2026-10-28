@@ -111,6 +111,11 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
     .setFooter({ text: 'LATAM SimRacing Alliance • Actualización en vivo' });
 
   if (status.trackPreviewUrl) {
+    embed.setThumbnail(status.trackPreviewUrl);
+  }
+  if (status.trackLayoutUrl) {
+    embed.setImage(status.trackLayoutUrl);
+  } else if (status.trackPreviewUrl) {
     embed.setImage(status.trackPreviewUrl);
   }
 
@@ -168,6 +173,10 @@ export function buildSessionResultMessagePayload(result: SessionResultSummary): 
     .setThumbnail(result.trackPreviewUrl)
     .setTimestamp(new Date())
     .setFooter({ text: 'LATAM SimRacing Alliance • Telemetría Oficial' });
+
+  if (result.trackLayoutUrl) {
+    embed.setImage(result.trackLayoutUrl);
+  }
 
   const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
   const replaySlug = result.fileName.replace(/\.json$/i, '');

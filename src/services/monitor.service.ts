@@ -222,6 +222,9 @@ export class MonitorService {
       if (status.trackPreviewUrl) {
         joinEmbed.setThumbnail(status.trackPreviewUrl);
       }
+      if (status.trackLayoutUrl) {
+        joinEmbed.setImage(status.trackLayoutUrl);
+      }
 
       try {
         await (alertChannel as TextChannel).send({
@@ -285,6 +288,9 @@ export class MonitorService {
 
     if (status.trackPreviewUrl) {
       alertEmbed.setThumbnail(status.trackPreviewUrl);
+    }
+    if (status.trackLayoutUrl) {
+      alertEmbed.setImage(status.trackLayoutUrl);
     }
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(

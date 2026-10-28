@@ -23,6 +23,7 @@ export interface ServerEntryList {
   serverName: string;
   trackName: string;
   trackPreviewUrl?: string;
+  trackLayoutUrl?: string;
   totalSlots: number;
   assignedSlots: EntryListSlot[];
   freeSlots: EntryListSlot[];
@@ -82,6 +83,7 @@ export interface SessionResultSummary {
   webUrl: string;
   trackName: string;
   trackPreviewUrl: string;
+  trackLayoutUrl?: string;
   sessionType: string;
   dateFormatted: string;
   standings: SessionStandingEntry[];
@@ -143,6 +145,7 @@ export interface ServerLiveStatus {
   trackName: string;
   trackConfig?: string;
   trackPreviewUrl?: string;
+  trackLayoutUrl?: string;
   sessionType: 'Practice' | 'Qualy' | 'Race' | 'Booking' | 'Desconocida';
   timeLeftFormatted: string;
   connectedDriversCount: number;
@@ -306,6 +309,14 @@ export class EmperorService {
     return `${base}/content/tracks/${rawTrack}/ui/preview.png`;
   }
 
+  public getTrackLayoutImageUrl(rawTrack: string, rawConfig?: string): string {
+    const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+    if (rawConfig && rawConfig.trim() !== '') {
+      return `${base}/content/tracks/${rawTrack}/${rawConfig}/ui/outline.png`;
+    }
+    return `${base}/content/tracks/${rawTrack}/ui/outline.png`;
+  }
+
   public async getLiveStatus(): Promise<ServerLiveStatus> {
     if (env.MOCK_MODE) {
       return this.getMockLiveStatus();
@@ -397,6 +408,7 @@ export class EmperorService {
       serverName,
       trackName: this.formatIdentifier(rawTrack),
       trackPreviewUrl: this.getTrackPreviewImageUrl(rawTrack, trackConfig),
+      trackLayoutUrl: this.getTrackLayoutImageUrl(rawTrack, trackConfig),
       totalSlots: rawCars.length || Number(rawData.maxclients ?? 16),
       assignedSlots,
       freeSlots,
@@ -624,6 +636,7 @@ export class EmperorService {
           webUrl: `${base}/results/${pageSlug}`,
           trackName: this.formatIdentifier(rawTrack),
           trackPreviewUrl: this.getTrackPreviewImageUrl(rawTrack, rawConfig),
+          trackLayoutUrl: this.getTrackLayoutImageUrl(rawTrack, rawConfig),
           sessionType: this.parseSessionType(data.Type),
           dateFormatted: data.Date
             ? new Date(data.Date).toLocaleString('es-AR', {
@@ -1031,6 +1044,7 @@ export class EmperorService {
       trackName: this.formatIdentifier(rawTrack),
       trackConfig: trackConfig ? this.formatIdentifier(trackConfig) : undefined,
       trackPreviewUrl: this.getTrackPreviewImageUrl(rawTrack, trackConfig),
+      trackLayoutUrl: this.getTrackLayoutImageUrl(rawTrack, trackConfig),
       sessionType,
       timeLeftFormatted,
       connectedDriversCount,
@@ -1240,6 +1254,7 @@ export class EmperorService {
         rawTrackId: 'rt_bathurst',
         trackName: 'Bathurst',
         trackPreviewUrl: this.getTrackPreviewImageUrl('rt_bathurst'),
+        trackLayoutUrl: this.getTrackLayoutImageUrl('rt_bathurst'),
         sessionType: 'Practice',
         timeLeftFormatted: '42:15',
         connectedDriversCount: 1,
@@ -1261,6 +1276,7 @@ export class EmperorService {
         rawTrackId: 'rt_bathurst',
         trackName: 'Bathurst',
         trackPreviewUrl: this.getTrackPreviewImageUrl('rt_bathurst'),
+        trackLayoutUrl: this.getTrackLayoutImageUrl('rt_bathurst'),
         sessionType: 'Qualy',
         timeLeftFormatted: '18:40',
         connectedDriversCount: 3,
@@ -1294,6 +1310,7 @@ export class EmperorService {
         rawTrackId: 'rt_bathurst',
         trackName: 'Bathurst',
         trackPreviewUrl: this.getTrackPreviewImageUrl('rt_bathurst'),
+        trackLayoutUrl: this.getTrackLayoutImageUrl('rt_bathurst'),
         sessionType: 'Practice',
         timeLeftFormatted: '59:00',
         connectedDriversCount: 0,
