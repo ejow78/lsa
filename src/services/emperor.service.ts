@@ -301,20 +301,17 @@ export class EmperorService {
     return `${base}/results`;
   }
 
-  public getTrackPreviewImageUrl(rawTrack: string, rawConfig?: string): string {
+  public getTrackPreviewImageUrl(rawTrack: string, _rawConfig?: string): string {
     const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
-    if (rawConfig && rawConfig.trim() !== '') {
-      return `${base}/content/tracks/${rawTrack}/${rawConfig}/ui/preview.png`;
-    }
     return `${base}/content/tracks/${rawTrack}/ui/preview.png`;
   }
 
   public getTrackLayoutImageUrl(rawTrack: string, rawConfig?: string): string {
     const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
     if (rawConfig && rawConfig.trim() !== '') {
-      return `${base}/content/tracks/${rawTrack}/${rawConfig}/ui/outline.png`;
+      return `${base}/content/tracks/${rawTrack}/${rawConfig}/map.png`;
     }
-    return `${base}/content/tracks/${rawTrack}/ui/outline.png`;
+    return `${base}/content/tracks/${rawTrack}/map.png`;
   }
 
   public async getLiveStatus(): Promise<ServerLiveStatus> {
