@@ -215,13 +215,9 @@ export async function buildSessionResultMessagePayload(
       .setStyle(ButtonStyle.Link)
       .setURL(replayUrl),
     new ButtonBuilder()
-      .setLabel('Ver Telemetría en Web')
+      .setLabel('Live Timing Web')
       .setStyle(ButtonStyle.Link)
-      .setURL(result.webUrl),
-    new ButtonBuilder()
-      .setLabel('Todos los Resultados')
-      .setStyle(ButtonStyle.Link)
-      .setURL(emperorService.getResultsWebUrl())
+      .setURL('https://live.latamsimracing.com/')
   );
 
   return { embeds: [embed], components: [row], files };

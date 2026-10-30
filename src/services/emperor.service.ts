@@ -288,11 +288,7 @@ export class EmperorService {
   }
 
   public getLiveTimingWebUrl(): string {
-    if (env.LIVE_TIMING_WEB_URL) {
-      return env.LIVE_TIMING_WEB_URL;
-    }
-    const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
-    return `${base}/live-timing`;
+    return 'https://live.latamsimracing.com/';
   }
 
   public getChampionshipsWebUrl(): string {
@@ -634,7 +630,7 @@ export class EmperorService {
 
         return {
           fileName,
-          webUrl: `${base}/results/${pageSlug}`,
+          webUrl: 'https://live.latamsimracing.com/',
           trackName: this.formatIdentifier(rawTrack),
           trackConfig: rawConfig,
           trackPreviewUrl: this.getTrackPreviewImageUrl(rawTrack, rawConfig),

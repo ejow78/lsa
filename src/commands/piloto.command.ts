@@ -71,7 +71,7 @@ export const pilotoCommand: SlashCommand = {
 
     const embed = new EmbedBuilder()
       .setTitle(`Telemetría de Piloto — ${profile.driverName}`)
-      .setURL(emperorService.getResultsWebUrl())
+      .setURL('https://live.latamsimracing.com/')
       .setDescription(`**Circuito:** ${profile.trackName}`)
       .setColor(0x1abc9c)
       .addFields(

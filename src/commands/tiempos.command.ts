@@ -57,7 +57,7 @@ export const tiemposCommand: SlashCommand = {
 
     const embed = new EmbedBuilder()
       .setTitle(`Ranking de Hotlaps — ${hotlaps.trackName}`)
-      .setURL(emperorService.getResultsWebUrl())
+      .setURL('https://live.latamsimracing.com/')
       .setColor(0xe67e22)
       .addFields({
         name: `Top Tiempos (${hotlaps.entries.length})`,
@@ -76,9 +76,9 @@ export const tiemposCommand: SlashCommand = {
         .setStyle(ButtonStyle.Link)
         .setURL(emperorService.getContentManagerJoinButtonUrl()),
       new ButtonBuilder()
-        .setLabel('Historial de Sesiones')
+        .setLabel('Live Timing Web')
         .setStyle(ButtonStyle.Link)
-        .setURL(emperorService.getResultsWebUrl())
+        .setURL('https://live.latamsimracing.com/')
     );
 
     await interaction.editReply({
