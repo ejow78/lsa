@@ -23,9 +23,9 @@ class TrackMapService {
   }
 
   /**
-   * Obtiene la imagen del trazado del circuito.
+   * Obtiene la imagen del trazado de cualquier circuito.
    * Si la imagen es vertical (alto > ancho), la rota automáticamente 90°
-   * para que en Discord se visualice de forma panorámica / horizontal.
+   * para que en Discord siempre se visualice en formato panorámico / horizontal.
    */
   public async getHorizontalTrackMapAttachment(
     mapUrl: string | undefined,
@@ -57,45 +57,64 @@ class TrackMapService {
           attachmentUrl: 'attachment://track-layout.png',
         };
       } catch {
-        // Fallback a procesar de nuevo si el archivo está corrupto
+        // Fallback a procesar de nuevo si el archivo en disco está corrupto
       }
     }
 
-    // 3. Descargar y procesar la imagen
-    try {
-      const img = await loadImage(mapUrl);
-
-      let buffer: Buffer;
-
-      // Si el mapa es vertical (alto > ancho), lo rotamos 90° en sentido horario
-      // para que quede en orientación horizontal apaisada
-      if (img.height > img.width) {
-        const canvas = createCanvas(img.height, img.width);
-        const ctx = canvas.getContext('2d');
-        ctx.translate(img.height, 0);
-        ctx.rotate(Math.PI / 2);
-        ctx.drawImage(img, 0, 0);
-        buffer = canvas.toBuffer('image/png');
-      } else {
-        // Ya es horizontal: convertimos a buffer directo
-        const canvas = createCanvas(img.width, img.height);
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        buffer = canvas.toBuffer('image/png');
+    // 3. Generar variantes de URL (por si el servidor usa subcarpetas o nombres con guión)
+    const urlsToTry: string[] = [mapUrl];
+    if (mapUrl.includes('/content/tracks/')) {
+      const subMatch = mapUrl.match(/\/content\/tracks\/([^\/]+)\/([^\/]+)\/map\.png$/);
+      if (subMatch) {
+        urlsToTry.push(mapUrl.replace(/\/content\/tracks\/([^\/]+)\/([^\/]+)\/map\.png$/, '/content/tracks/$1-$2/map.png'));
+        urlsToTry.push(mapUrl.replace(/\/content\/tracks\/([^\/]+)\/([^\/]+)\/map\.png$/, '/content/tracks/$1/map.png'));
       }
 
-      // Guardar en memoria y disco
-      this.memoryCache.set(safeKey, buffer);
-      fs.promises.writeFile(diskPath, buffer).catch(() => null);
-
-      return {
-        attachment: new AttachmentBuilder(buffer, { name: 'track-layout.png' }),
-        attachmentUrl: 'attachment://track-layout.png',
-      };
-    } catch (err) {
-      console.warn(`⚠️ Error al procesar imagen horizontal para ${mapUrl}:`, err);
-      return null;
+      const hyphenMatch = mapUrl.match(/\/content\/tracks\/([^\/]+)-([^\/]+)\/map\.png$/);
+      if (hyphenMatch) {
+        urlsToTry.push(mapUrl.replace(/\/content\/tracks\/([^\/]+)-([^\/]+)\/map\.png$/, '/content/tracks/$1/$2/map.png'));
+        urlsToTry.push(mapUrl.replace(/\/content\/tracks\/([^\/]+)-([^\/]+)\/map\.png$/, '/content/tracks/$1/map.png'));
+      }
     }
+
+    // 4. Intentar cargar y procesar la imagen
+    for (const url of urlsToTry) {
+      try {
+        const img = await loadImage(url);
+
+        let buffer: Buffer;
+
+        // Si el circuito es vertical (alto > ancho), lo rotamos 90° a horizontal
+        if (img.height > img.width) {
+          const canvas = createCanvas(img.height, img.width);
+          const ctx = canvas.getContext('2d');
+          ctx.translate(img.height, 0);
+          ctx.rotate(Math.PI / 2);
+          ctx.drawImage(img, 0, 0);
+          buffer = canvas.toBuffer('image/png');
+        } else {
+          // Si ya es horizontal (ancho >= alto), lo dejamos tal cual
+          const canvas = createCanvas(img.width, img.height);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          buffer = canvas.toBuffer('image/png');
+        }
+
+        // Guardar en memoria y disco para que las próximas consultas sean instantáneas
+        this.memoryCache.set(safeKey, buffer);
+        fs.promises.writeFile(diskPath, buffer).catch(() => null);
+
+        return {
+          attachment: new AttachmentBuilder(buffer, { name: 'track-layout.png' }),
+          attachmentUrl: 'attachment://track-layout.png',
+        };
+      } catch {
+        continue;
+      }
+    }
+
+    console.warn(`⚠️ No se pudo obtener la imagen del trazado para ${mapUrl}`);
+    return null;
   }
 }
 
