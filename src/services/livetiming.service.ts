@@ -1,5 +1,38 @@
+import WebSocket from 'ws';
 import { env } from '../config/env.js';
 import { emperorService } from './emperor.service.js';
+
+export interface DriverLapRecord {
+  lapNumber: number;
+  lapTimeMs: number;
+  lapFormatted: string;
+  isPersonalBest: boolean;
+  topSpeedKmh: number;
+  tyre: string;
+  timestamp: string;
+}
+
+export interface LiveChatMessage {
+  id: string;
+  time: string;
+  timeFormatted: string;
+  driverGuid: string;
+  driverName: string;
+  message: string;
+}
+
+export interface LiveServerLog {
+  id: string;
+  time: string;
+  timeFormatted: string;
+  type: string;
+  name: string;
+  driverName: string;
+  carModel: string;
+  lap: number | string;
+  triggeredBy: string;
+  context: string;
+}
 
 export interface LiveMapDriver {
   guid: string;
@@ -16,6 +49,7 @@ export interface LiveMapDriver {
   speedKmh: number;
   topSpeedKmh: number;
   gear: number;
+  gearDisplay: string;
   rpm: number;
   maxRpm: number;
   rpmPct: number;
@@ -51,6 +85,7 @@ export interface LiveMapDriver {
   mapPercentX: number;
   mapPercentY: number;
   color: string;
+  laps: DriverLapRecord[];
 }
 
 export interface StoredSessionTime {
@@ -99,6 +134,9 @@ export interface LiveTelemetryState {
   trackLength: string;
   sessionType: string;
   sessionDurationMinutes: number;
+  sessionWaitTimeSeconds: number;
+  sessionLaps: number;
+  sessionStartTime: string;
   elapsedSeconds: number;
   ambientTemp: number;
   roadTemp: number;
@@ -122,6 +160,8 @@ export interface LiveTelemetryState {
   drivers: LiveMapDriver[];
   storedTimes: StoredSessionTime[];
   collisions: LiveCollisionEvent[];
+  chat: LiveChatMessage[];
+  serverLogs: LiveServerLog[];
   updatedAt: string;
 }
 
@@ -149,9 +189,12 @@ export class LiveTimingService {
   private driversByGuid = new Map<string, LiveMapDriver>();
   private storedTimesList: StoredSessionTime[] = [];
   private collisionsList: LiveCollisionEvent[] = [];
+  private chatList: LiveChatMessage[] = [];
+  private serverLogList: LiveServerLog[] = [];
+  private driverLapsMap = new Map<string, DriverLapRecord[]>();
   private listeners = new Set<StateListener>();
 
-  // Per-driver physics tracking for input estimation & sudden impact detection
+  // Per-driver physics tracking for sudden impact detection
   private prevPhysicsByGuid = new Map<
     string,
     { speedMps: number; timeMs: number; lastImpactMs: number }
@@ -169,6 +212,9 @@ export class LiveTimingService {
     trackLength: '',
     sessionType: 'Práctica',
     sessionDurationMinutes: 0,
+    sessionWaitTimeSeconds: 0,
+    sessionLaps: 0,
+    sessionStartTime: new Date().toISOString(),
     elapsedSeconds: 0,
     ambientTemp: 20,
     roadTemp: 26,
@@ -192,6 +238,8 @@ export class LiveTimingService {
     drivers: [],
     storedTimes: [],
     collisions: [],
+    chat: [],
+    serverLogs: [],
     updatedAt: new Date().toISOString(),
   };
 
@@ -231,13 +279,20 @@ export class LiveTimingService {
   }
 
   public getState(): LiveTelemetryState {
+    const drivers = Array.from(this.driversByGuid.values())
+      .map((d) => ({
+        ...d,
+        laps: this.driverLapsMap.get(d.guid) || [],
+      }))
+      .sort((a, b) => (a.position || 999) - (b.position || 999));
+
     return {
       ...this.state,
-      drivers: Array.from(this.driversByGuid.values()).sort(
-        (a, b) => (a.position || 999) - (b.position || 999)
-      ),
+      drivers,
       storedTimes: this.storedTimesList,
       collisions: this.collisionsList.slice(0, 20),
+      chat: this.chatList.slice(0, 60),
+      serverLogs: this.serverLogList.slice(0, 60),
       updatedAt: new Date().toISOString(),
     };
   }
@@ -347,24 +402,37 @@ export class LiveTimingService {
 
     try {
       const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+      const userAgent =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
       const res = await fetch(`${base}/live-timing`, {
+        headers: {
+          'User-Agent': userAgent,
+        },
         signal: AbortSignal.timeout(8000),
       });
-      const setCookies =
-        typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : [];
-      const rawCookie = setCookies[0] ? setCookies[0].split(';')[0] : '';
+
+      let rawCookie = '';
+      if (typeof res.headers.getSetCookie === 'function') {
+        const cookies = res.headers.getSetCookie();
+        if (cookies && cookies[0]) {
+          rawCookie = cookies[0].split(';')[0];
+        }
+      }
+      if (!rawCookie) {
+        const headerCookie = res.headers.get('set-cookie');
+        if (headerCookie) {
+          rawCookie = headerCookie.split(';')[0];
+        }
+      }
 
       const wsUrl = base.replace(/^http/, 'ws') + '/api/race-control';
 
-      const WsConstructor = WebSocket as unknown as new (
-        url: string,
-        options?: unknown
-      ) => WebSocket;
-
-      const ws = new WsConstructor(wsUrl, {
+      const ws = new WebSocket(wsUrl, {
         headers: {
           Cookie: rawCookie,
           Origin: base,
+          'User-Agent': userAgent,
         },
       });
 
@@ -372,11 +440,11 @@ export class LiveTimingService {
 
       ws.onopen = () => {
         this.state.connectedToWs = true;
-        console.log('🌐 Conectado al WebSocket de Live Timing & Mapa de Emperor');
+        console.log('🌐 Conectado exitosamente al WebSocket de Live Timing & Mapa de Emperor');
         this.emitUpdate();
       };
 
-      ws.onmessage = (event: MessageEvent) => {
+      ws.onmessage = (event: { data: unknown }) => {
         try {
           const payload = JSON.parse(String(event.data));
           this.handleWsEvent(payload);
@@ -385,15 +453,18 @@ export class LiveTimingService {
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (ev: { code?: number; reason?: string }) => {
+        console.warn(`⚠️ WebSocket cerrado (código: ${ev?.code}, razón: ${ev?.reason || 'desconocida'})`);
         this.state.connectedToWs = false;
         this.scheduleReconnect();
       };
 
-      ws.onerror = () => {
+      ws.onerror = (err) => {
+        console.error('❌ Error en WebSocket de Emperor:', err);
         this.state.connectedToWs = false;
       };
-    } catch {
+    } catch (err) {
+      console.error('❌ Error iniciando WebSocket con Emperor:', err);
       this.state.connectedToWs = false;
       this.scheduleReconnect();
     }
@@ -452,11 +523,56 @@ export class LiveTimingService {
     return 3;
   }
 
+  private formatGear(rawGear: number): string {
+    const g = rawGear - 1;
+    if (g < 0) return 'R';
+    if (g === 0) return 'N';
+    return String(g);
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private handleWsEvent(payload: any): void {
     const eventType = payload?.EventType;
     const msg = payload?.Message;
     if (!msg) return;
+
+    // EventType 57 = Live Game Chat Message
+    if (eventType === 57) {
+      const cd = new Date(msg.Time || Date.now());
+      const chatItem: LiveChatMessage = {
+        id: `chat-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        time: msg.Time || cd.toISOString(),
+        timeFormatted: cd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        driverGuid: String(msg.DriverGUID || ''),
+        driverName: String(msg.DriverName || 'Servidor'),
+        message: String(msg.Message || ''),
+      };
+      this.chatList.unshift(chatItem);
+      if (this.chatList.length > 100) this.chatList.length = 100;
+      this.emitUpdate();
+      return;
+    }
+
+    // EventType 110 = Steward / Penalty / Infraction Log
+    if (eventType === 110) {
+      const cd = new Date(msg.time || Date.now());
+      const logItem: LiveServerLog = {
+        id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        time: msg.time || cd.toISOString(),
+        timeFormatted: cd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        type: String(msg.type || 'Sanción'),
+        name: String(msg.name || ''),
+        driverName: String(msg.driver_name || ''),
+        carModel: String(msg.car_model || ''),
+        lap: msg.lap ?? 0,
+        triggeredBy: String(msg.triggered_by || 'Race Control'),
+        context: String(msg.context || ''),
+      };
+      this.serverLogList.unshift(logItem);
+      if (this.serverLogList.length > 100) this.serverLogList.length = 100;
+      this.emitUpdate();
+      return;
+    }
 
     // EventType 200 = Full initial RaceControl state
     if (eventType === 200) {
@@ -475,6 +591,8 @@ export class LiveTimingService {
       this.state.trackCountry = trackInfo.country || '';
       this.state.trackLength = trackInfo.length || '';
       this.state.sessionDurationMinutes = Number(sessionInfo.Time ?? 0);
+      this.state.sessionWaitTimeSeconds = Number(sessionInfo.WaitTime ?? 0);
+      this.state.sessionLaps = Number(sessionInfo.Laps ?? 0);
       this.state.ambientTemp = Number(sessionInfo.AmbientTemp ?? this.state.ambientTemp);
       this.state.roadTemp = Number(sessionInfo.RoadTemp ?? this.state.roadTemp);
 
@@ -487,10 +605,27 @@ export class LiveTimingService {
       this.state.sessionType = sessionTypeMap[Number(sessionInfo.Type)] || 'Práctica';
 
       if (msg.SessionStartTime) {
+        this.state.sessionStartTime = new Date(msg.SessionStartTime).toISOString();
         const startMs = new Date(msg.SessionStartTime).getTime();
         if (!Number.isNaN(startMs)) {
           this.state.elapsedSeconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
         }
+      }
+
+      // Initial chat messages
+      if (Array.isArray(msg.ChatMessages) && msg.ChatMessages.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.chatList = msg.ChatMessages.map((c: any, i: number) => {
+          const cd = new Date(c.Time || Date.now());
+          return {
+            id: `chat-init-${i}`,
+            time: c.Time || cd.toISOString(),
+            timeFormatted: cd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            driverGuid: String(c.DriverGUID || ''),
+            driverName: String(c.DriverName || 'Servidor'),
+            message: String(c.Message || ''),
+          };
+        }).reverse();
       }
 
       this.state.mapData = {
@@ -537,6 +672,25 @@ export class LiveTimingService {
 
         const spline = Number(d.NormalisedSplinePos ?? 0);
         const steerAngle = Number(d.SteerAngle ?? 127);
+        const bestLapMs = bestLapNs > 0 ? Math.round(bestLapNs / 1_000_000) : 0;
+
+        // Initialize driver laps
+        let driverLaps = this.driverLapsMap.get(guid);
+        if (!driverLaps) {
+          driverLaps = [];
+          if (bestLapMs > 0) {
+            driverLaps.push({
+              lapNumber: Number(carStats.NumLaps ?? 1),
+              lapTimeMs: bestLapMs,
+              lapFormatted: this.formatNsLap(bestLapNs),
+              isPersonalBest: true,
+              topSpeedKmh: Math.round(Number(carStats.TopSpeedBestLap ?? 0)),
+              tyre: carInfo.Tyres || '-',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            });
+          }
+          this.driverLapsMap.set(guid, driverLaps);
+        }
 
         this.driversByGuid.set(guid, {
           guid,
@@ -553,6 +707,7 @@ export class LiveTimingService {
           speedKmh: 0,
           topSpeedKmh: Math.round(Number(carStats.TopSpeedBestLap ?? 0)),
           gear: 1,
+          gearDisplay: 'N',
           rpm: 0,
           maxRpm: 8000,
           rpmPct: 0,
@@ -573,7 +728,7 @@ export class LiveTimingService {
           deltaToSelfFormatted: this.formatDeltaMs(Number(d.DeltaToSelf ?? 0)),
           headingDeg: 0,
           numLaps: Number(carStats.NumLaps ?? d.TotalNumLaps ?? 0),
-          bestLapMs: bestLapNs > 0 ? Math.round(bestLapNs / 1_000_000) : 0,
+          bestLapMs,
           bestLapFormatted: this.formatNsLap(bestLapNs),
           lastLapFormatted: this.formatNsLap(lastLapNs),
           gap: d.Split || '00:00.000',
@@ -588,6 +743,7 @@ export class LiveTimingService {
           mapPercentX: coords.percentX,
           mapPercentY: coords.percentY,
           color: DRIVER_COLORS[idx % DRIVER_COLORS.length]!,
+          laps: driverLaps,
         });
       });
 
@@ -646,6 +802,23 @@ export class LiveTimingService {
       const existing = this.driversByGuid.get(guid);
       const idx = this.driversByGuid.size;
       const carModel = msg.CarModel || existing?.carModel || '';
+      const driverLaps = this.driverLapsMap.get(guid) || [];
+
+      if (!existing && eventType === 51) {
+        this.serverLogList.unshift({
+          id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          time: new Date().toISOString(),
+          timeFormatted: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          type: 'Conexión',
+          name: 'Piloto conectado a la sesión',
+          driverName: msg.DriverName || 'Piloto',
+          carModel,
+          lap: 0,
+          triggeredBy: 'Servidor',
+          context: 'Ingreso al pitlane',
+        });
+        if (this.serverLogList.length > 100) this.serverLogList.length = 100;
+      }
 
       this.driversByGuid.set(guid, {
         guid,
@@ -662,14 +835,15 @@ export class LiveTimingService {
         speedKmh: existing?.speedKmh ?? 0,
         topSpeedKmh: existing?.topSpeedKmh ?? 0,
         gear: existing?.gear ?? 1,
+        gearDisplay: existing?.gearDisplay || 'N',
         rpm: existing?.rpm ?? 0,
         maxRpm: existing?.maxRpm ?? 8000,
         rpmPct: existing?.rpmPct ?? 0,
         steerAngle: existing?.steerAngle ?? 0,
         steerDeg: existing?.steerDeg ?? 0,
-        throttlePct: existing?.throttlePct ?? 0,
-        brakePct: existing?.brakePct ?? 0,
-        longitudinalG: existing?.longitudinalG ?? 0,
+        throttlePct: 0,
+        brakePct: 0,
+        longitudinalG: 0,
         drsActive: existing?.drsActive ?? false,
         blueFlag: existing?.blueFlag ?? false,
         yellowFlag: existing?.yellowFlag ?? false,
@@ -697,6 +871,7 @@ export class LiveTimingService {
         mapPercentX: existing?.mapPercentX ?? 0,
         mapPercentY: existing?.mapPercentY ?? 0,
         color: existing?.color || DRIVER_COLORS[idx % DRIVER_COLORS.length]!,
+        laps: driverLaps,
       });
       this.emitUpdate();
       return;
@@ -706,6 +881,21 @@ export class LiveTimingService {
     if (eventType === 52) {
       const guid = String(msg.DriverGUID || '');
       if (guid) {
+        const driver = this.driversByGuid.get(guid);
+        this.serverLogList.unshift({
+          id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          time: new Date().toISOString(),
+          timeFormatted: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          type: 'Desconexión',
+          name: 'Piloto abandonó la sesión',
+          driverName: driver?.name || 'Piloto',
+          carModel: driver?.carModel || '',
+          lap: driver?.numLaps || 0,
+          triggeredBy: 'Servidor',
+          context: 'Salió del servidor',
+        });
+        if (this.serverLogList.length > 100) this.serverLogList.length = 100;
+
         this.driversByGuid.delete(guid);
         this.prevPhysicsByGuid.delete(guid);
         this.emitUpdate();
@@ -763,6 +953,20 @@ export class LiveTimingService {
         this.collisionsList.length = 30;
       }
 
+      this.serverLogList.unshift({
+        id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        time: now.toISOString(),
+        timeFormatted: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        type: 'Incidente',
+        name: collision.typeLabel,
+        driverName: collision.driverName,
+        carModel: driver?.carModel || '',
+        lap: driver?.numLaps || 0,
+        triggeredBy: 'Detección física',
+        context: `${speedKmh} km/h • Sector ${collision.sector}`,
+      });
+      if (this.serverLogList.length > 100) this.serverLogList.length = 100;
+
       this.emitUpdate();
       return;
     }
@@ -774,7 +978,6 @@ export class LiveTimingService {
 
       for (const update of updates) {
         if (!update || typeof update !== 'object') continue;
-        // Important: in Go, CarID: 0 is omitted when omitempty is set!
         const carId = typeof update.CarID === 'number' ? update.CarID : 0;
         let guid = this.carIdToGuid.get(carId);
         if (!guid && this.driversByGuid.size === 1) {
@@ -798,77 +1001,9 @@ export class LiveTimingService {
         const maxRpm = Math.max(driver.maxRpm || 7500, rpm, 6500);
         const rpmPct = Math.min(100, Math.max(0, Math.round((rpm / maxRpm) * 100)));
 
-        // Estimate longitudinal acceleration (G-force), Throttle % and Brake %
-        const prev = this.prevPhysicsByGuid.get(guid);
-        let throttlePct = driver.throttlePct;
-        let brakePct = driver.brakePct;
-        let longitudinalG = driver.longitudinalG;
-
-        if (prev && nowMs > prev.timeMs) {
-          const dtSec = Math.max(0.05, (nowMs - prev.timeMs) / 1000);
-          const accelMps2 = (speedMps - prev.speedMps) / dtSec;
-          longitudinalG = Math.round((accelMps2 / 9.81) * 100) / 100;
-
-          if (Boolean(update.IsInPits) && speedKmh < 3) {
-            throttlePct = rpm > 2000 ? Math.min(100, Math.round(((rpm - 1000) / maxRpm) * 100)) : 0;
-            brakePct = 0;
-          } else if (accelMps2 < -1.2 && speedKmh > 5) {
-            // Braking
-            brakePct = Math.min(100, Math.max(10, Math.round((Math.abs(accelMps2) / 10.5) * 100)));
-            throttlePct = 0;
-          } else if (speedKmh > 5) {
-            // Accelerating or cruising at speed
-            brakePct = 0;
-            const accelBoost = Math.max(0, (accelMps2 / 6.0) * 55);
-            const rpmLoad = (rpm / maxRpm) * 75;
-            throttlePct = Math.min(100, Math.max(15, Math.round(accelBoost + rpmLoad)));
-          } else {
-            throttlePct = rpm > 1800 ? Math.round((rpm / maxRpm) * 60) : 0;
-            brakePct = 0;
-          }
-
-          // Sudden violent deceleration detector (if a driver crashes violently on track > 48 km/h loss in < 1s)
-          const speedDropKmh = (prev.speedMps - speedMps) * 3.6;
-          if (
-            !update.IsInPits &&
-            dtSec <= 1.2 &&
-            speedDropKmh >= 55 &&
-            accelMps2 <= -16 &&
-            nowMs - prev.lastImpactMs > 10000
-          ) {
-            prev.lastImpactMs = nowMs;
-            driver.incidentsCount = (driver.incidentsCount || 0) + 1;
-            const now = new Date();
-            this.collisionsList.unshift({
-              id: `${guid}-impact-${nowMs}`,
-              timestamp: now.toISOString(),
-              timeFormatted: now.toLocaleTimeString(),
-              epochMs: nowMs,
-              driverGuid: guid,
-              driverName: driver.name,
-              carName: driver.carName,
-              otherDriverName: '',
-              type: 'environment',
-              typeLabel: 'Frenada brusca / Impacto detectado en pista',
-              speedKmh: Math.round(prev.speedMps * 3.6),
-              sector: this.sectorFromSpline(Number(update.NormalisedSplinePos ?? 0)),
-              worldX,
-              worldZ,
-              mapPercentX: coords.percentX,
-              mapPercentY: coords.percentY,
-              damageZones: [25, 0, 10, 10],
-            });
-            if (this.collisionsList.length > 30) {
-              this.collisionsList.length = 30;
-            }
-          }
-        }
-
-        this.prevPhysicsByGuid.set(guid, {
-          speedMps,
-          timeMs: nowMs,
-          lastImpactMs: prev?.lastImpactMs ?? 0,
-        });
+        const steerAngle = Number(update.SteerAngle ?? driver.steerAngle);
+        driver.steerAngle = steerAngle;
+        driver.steerDeg = Math.round(steerAngle * 1.417);
 
         driver.worldX = worldX;
         driver.worldZ = worldZ;
@@ -881,17 +1016,16 @@ export class LiveTimingService {
         if (speedKmh > driver.topSpeedKmh) {
           driver.topSpeedKmh = speedKmh;
         }
-        driver.gear = Number(update.Gear ?? driver.gear);
+
+        const rawGear = Number(update.Gear ?? driver.gear);
+        driver.gear = rawGear;
+        driver.gearDisplay = this.formatGear(rawGear);
         driver.rpm = rpm;
         driver.maxRpm = maxRpm;
         driver.rpmPct = rpmPct;
-
-        const steerAngle = Number(update.SteerAngle ?? driver.steerAngle);
-        driver.steerAngle = steerAngle;
-        driver.steerDeg = Math.round(steerAngle * 1.417);
-        driver.throttlePct = throttlePct;
-        driver.brakePct = brakePct;
-        driver.longitudinalG = longitudinalG;
+        driver.throttlePct = 0;
+        driver.brakePct = 0;
+        driver.longitudinalG = 0;
         driver.drsActive = Boolean(update.DRSActive ?? driver.drsActive);
         driver.blueFlag = Boolean(update.BlueFlag ?? false);
         driver.hasCompletedSession = Boolean(update.HasCompletedSession ?? driver.hasCompletedSession);
@@ -918,6 +1052,27 @@ export class LiveTimingService {
         }
         if (update.Rotation && typeof update.Rotation.X === 'number') {
           driver.headingDeg = Math.round(180 + update.Rotation.X * (180 / Math.PI));
+        }
+
+        // Lap completed check
+        if (typeof update.TotalNumLaps === 'number' && update.TotalNumLaps > driver.numLaps) {
+          driver.numLaps = update.TotalNumLaps;
+          const lapMs = Math.round(Number(update.LastLap ?? 0) / 1_000_000);
+          if (lapMs > 0) {
+            const laps = this.driverLapsMap.get(guid) || [];
+            const isPB = driver.bestLapMs > 0 && lapMs <= driver.bestLapMs;
+            laps.unshift({
+              lapNumber: driver.numLaps,
+              lapTimeMs: lapMs,
+              lapFormatted: emperorService.formatLapTime(lapMs),
+              isPersonalBest: isPB,
+              topSpeedKmh: driver.speedKmh,
+              tyre: driver.tyres || '-',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            });
+            this.driverLapsMap.set(guid, laps);
+            driver.laps = laps;
+          }
         }
       }
 

@@ -287,6 +287,9 @@ export class EmperorService {
   }
 
   public getLiveTimingWebUrl(): string {
+    if (env.LIVE_TIMING_WEB_URL) {
+      return env.LIVE_TIMING_WEB_URL;
+    }
     const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
     return `${base}/live-timing`;
   }

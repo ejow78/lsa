@@ -14,8 +14,9 @@ import {
   type Client,
 } from 'discord.js';
 import { commandsCollection } from '../commands/index.js';
+import { buildReportModal } from '../commands/reportar.command.js';
 import { env } from '../config/env.js';
-import { reportsService } from '../services/reports.service.js';
+import { reportsService, type GameType } from '../services/reports.service.js';
 
 export function registerInteractionCreateEvent(client: Client): void {
   client.on(Events.InteractionCreate, async (interaction) => {
@@ -55,14 +56,26 @@ export function registerInteractionCreateEvent(client: Client): void {
     // 2. MANEJO DE FORMULARIOS MODAL
     // -------------------------------------------------------------
     if (interaction.isModalSubmit()) {
-      // Envío de nuevo reporte por parte de un piloto
-      if (interaction.customId === 'modal_report_incident') {
+      // Envío de nuevo reporte por parte de un piloto (AC o ACC)
+      if (
+        interaction.customId === 'modal_report_incident' ||
+        interaction.customId === 'modal_report_incident_AC' ||
+        interaction.customId === 'modal_report_incident_ACC'
+      ) {
+        let game: GameType = 'AC';
+        if (interaction.customId === 'modal_report_incident_ACC') {
+          game = 'ACC';
+        } else if (interaction.channelId === env.accReportChannelId) {
+          game = 'ACC';
+        }
+
         const accused = interaction.fields.getTextInputValue('report_accused');
         const sessionTime = interaction.fields.getTextInputValue('report_session_time');
         const videoUrl = interaction.fields.getTextInputValue('report_video_url');
         const description = interaction.fields.getTextInputValue('report_description');
 
         const report = reportsService.createReport({
+          game,
           reporterId: interaction.user.id,
           reporterTag: interaction.user.tag || interaction.user.username,
           accused,
@@ -71,21 +84,29 @@ export function registerInteractionCreateEvent(client: Client): void {
           description,
         });
 
-        // Enviar Embed al canal privado de comisarios
+        const gameName = game === 'ACC' ? 'Assetto Corsa Competizione' : 'Assetto Corsa';
+        const stewardsChannelId =
+          game === 'ACC' ? env.accStewardsChannelId : env.acStewardsChannelId;
+
+        // Enviar Embed al canal privado correspondiente de comisarios
         try {
-          const stewardsChannel = await client.channels.fetch(env.stewardsChannelId).catch(() => null);
+          const stewardsChannel = await client.channels
+            .fetch(stewardsChannelId)
+            .catch(() => null);
+
           if (stewardsChannel && stewardsChannel.isTextBased()) {
             const stewardEmbed = new EmbedBuilder()
-              .setTitle(`Reporte de Incidente • ${report.id}`)
-              .setColor(0xe74c3c)
+              .setTitle(`Denuncia de Incidente • [${game}] • ${report.id}`)
+              .setColor(game === 'ACC' ? 0xe67e22 : 0xe74c3c)
               .setDescription(
+                `**Simulador:** \`${gameName}\`\n` +
                 `**Denunciante:** <@${interaction.user.id}> (${interaction.user.username})\n` +
                 `**Piloto / Auto Denunciado:** \`${accused}\`\n` +
                 `**Momento / Vuelta:** ${sessionTime}\n` +
-                `**Video de Maniobra:** [Ver Video / Transmisión](${videoUrl})\n\n` +
+                `**Video de Maniobra:** [Ver Video / Prueba en Línea](${videoUrl})\n\n` +
                 `**Descripción del incidente:**\n${description}`
               )
-              .setFooter({ text: 'Sistema Oficial de Comisariato LSA' })
+              .setFooter({ text: `Colegio de Comisarios LSA • ${gameName}` })
               .setTimestamp(new Date());
 
             const buttonsRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -107,6 +128,8 @@ export function registerInteractionCreateEvent(client: Client): void {
               embeds: [stewardEmbed],
               components: [buttonsRow],
             });
+          } else {
+            console.warn(`⚠️ No se encontró el canal de comisarios (${stewardsChannelId})`);
           }
         } catch (err) {
           console.error('Error notificando a los comisarios:', err);
@@ -114,8 +137,8 @@ export function registerInteractionCreateEvent(client: Client): void {
 
         await interaction.reply({
           content:
-            `Tu denuncia ha sido registrada con el código **\`${report.id}\`**.\n` +
-            `Los comisarios deportivos analizarán el video y los datos de telemetría a la brevedad.`,
+            `✅ Tu denuncia para **${gameName}** ha sido registrada con el código **\`${report.id}\`**.\n` +
+            `Los comisarios deportivos analizarán el video y los datos a la brevedad.`,
           ephemeral: true,
         });
         return;
@@ -139,6 +162,8 @@ export function registerInteractionCreateEvent(client: Client): void {
           return;
         }
 
+        const gameName = report.game === 'ACC' ? 'Assetto Corsa Competizione' : 'Assetto Corsa';
+
         // Actualizar el mensaje del canal de comisarios
         try {
           if (interaction.message) {
@@ -158,31 +183,41 @@ export function registerInteractionCreateEvent(client: Client): void {
           console.error('Error actualizando mensaje de comisarios:', err);
         }
 
-        // Publicar en el canal público de sanciones
+        // Publicar en el canal público de sanciones si existe y está configurado
         try {
-          const sanctionsChannel = await client.channels.fetch(env.sanctionsChannelId).catch(() => null);
-          if (sanctionsChannel && sanctionsChannel.isTextBased()) {
-            const publicEmbed = new EmbedBuilder()
-              .setTitle(`Veredicto de Comisariato • Caso ${report.id}`)
-              .setColor(0xe74c3c)
-              .setDescription(
-                `**Piloto / Auto Sancionado:** \`${report.accused}\`\n` +
-                `**Sesión / Momento:** ${report.sessionTime}\n` +
-                `**Sanción Aplicada:** **${penaltyApplied}**\n` +
-                `**Motivo:** ${penaltyReason}\n` +
-                `**Prueba en Video:** [Enlace a la repetición](${report.videoUrl})\n\n` +
-                `*Resolución emitida por el Colegio de Comisarios Deportivos de LSA.*`
-              )
-              .setTimestamp(new Date());
+          if (
+            env.sanctionsChannelId &&
+            env.sanctionsChannelId !== env.acStewardsChannelId &&
+            env.sanctionsChannelId !== env.accStewardsChannelId
+          ) {
+            const sanctionsChannel = await client.channels
+              .fetch(env.sanctionsChannelId)
+              .catch(() => null);
 
-            await (sanctionsChannel as TextChannel).send({ embeds: [publicEmbed] });
+            if (sanctionsChannel && sanctionsChannel.isTextBased()) {
+              const publicEmbed = new EmbedBuilder()
+                .setTitle(`Veredicto de Comisariato • [${gameName}] • Caso ${report.id}`)
+                .setColor(0xe74c3c)
+                .setDescription(
+                  `**Simulador:** \`${gameName}\`\n` +
+                  `**Piloto / Auto Sancionado:** \`${report.accused}\`\n` +
+                  `**Sesión / Momento:** ${report.sessionTime}\n` +
+                  `**Sanción Aplicada:** **${penaltyApplied}**\n` +
+                  `**Motivo:** ${penaltyReason}\n` +
+                  `**Prueba en Video:** [Enlace a la repetición](${report.videoUrl})\n\n` +
+                  `*Resolución emitida por el Colegio de Comisarios Deportivos de LSA.*`
+                )
+                .setTimestamp(new Date());
+
+              await (sanctionsChannel as TextChannel).send({ embeds: [publicEmbed] });
+            }
           }
         } catch (err) {
           console.error('Error publicando sanción oficial:', err);
         }
 
         await interaction.reply({
-          content: `Sanción para el reporte **${reportId}** aplicada y publicada correctamente.`,
+          content: `✅ Sanción para el reporte **${reportId}** ([${gameName}]) aplicada y registrada correctamente.`,
           ephemeral: true,
         });
         return;
@@ -193,6 +228,16 @@ export function registerInteractionCreateEvent(client: Client): void {
     // 3. MANEJO DE BOTONES INTERACTIVOS
     // -------------------------------------------------------------
     if (interaction.isButton()) {
+      // Abrir modal de reporte desde los paneles oficiales o selector
+      if (interaction.customId === 'open_report_modal_AC') {
+        await interaction.showModal(buildReportModal('AC'));
+        return;
+      }
+      if (interaction.customId === 'open_report_modal_ACC') {
+        await interaction.showModal(buildReportModal('ACC'));
+        return;
+      }
+
       if (
         interaction.customId.startsWith('steward_penalize_') ||
         interaction.customId.startsWith('steward_dismiss_')
@@ -207,7 +252,7 @@ export function registerInteractionCreateEvent(client: Client): void {
 
         if (!hasModRole && !isAdmin) {
           await interaction.reply({
-            content: 'Solo los comisarios deportivos y moderadores pueden resolver incidentes.',
+            content: '❌ Solo los comisarios deportivos y administradores pueden resolver incidentes.',
             ephemeral: true,
           });
           return;
@@ -243,7 +288,7 @@ export function registerInteractionCreateEvent(client: Client): void {
           }
 
           await interaction.reply({
-            content: `Reporte **${reportId}** desestimado como lance de carrera.`,
+            content: `✅ Reporte **${reportId}** desestimado como lance de carrera.`,
             ephemeral: true,
           });
           return;

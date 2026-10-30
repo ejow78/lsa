@@ -1,10 +1,16 @@
 import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Client } from 'discord.js';
 import { env } from '../config/env.js';
 import { emperorService } from '../services/emperor.service.js';
 import { liveTimingService } from '../services/livetiming.service.js';
 import { tablesService, type CustomTable } from '../services/tables.service.js';
 import { DASHBOARD_HTML } from './dashboard.html.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export function startWebServer(discordClient: Client | null = null): http.Server {
   liveTimingService.start();
@@ -24,6 +30,28 @@ export function startWebServer(discordClient: Client | null = null): http.Server
     }
 
     try {
+      // 0. Servir Logo LSA Oficial
+      if (req.method === 'GET' && (pathname === '/logo.png' || pathname === '/Logo_LSA.png' || pathname === '/favicon.ico')) {
+        try {
+          let logoPath = path.join(__dirname, 'logo.png');
+          if (!fs.existsSync(logoPath)) {
+            const fallback = path.resolve(process.cwd(), 'src/web/logo.png');
+            if (fs.existsSync(fallback)) logoPath = fallback;
+          }
+          const logoBuf = await fs.promises.readFile(logoPath);
+          res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'public, max-age=86400',
+          });
+          res.end(logoBuf);
+          return;
+        } catch {
+          res.writeHead(404);
+          res.end('Logo not found');
+          return;
+        }
+      }
+
       // 1. Página Principal del Portal Web
       if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });

@@ -1,8 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+export type GameType = 'AC' | 'ACC';
+
 export interface IncidentReport {
   id: string;
+  game: GameType;
   reporterId: string;
   reporterTag: string;
   accused: string;
@@ -37,9 +40,26 @@ export class ReportsService {
       }
 
       const raw = fs.readFileSync(this.filePath, 'utf-8');
-      const data = JSON.parse(raw) as IncidentReport[];
+      const data = JSON.parse(raw) as Array<Partial<IncidentReport>>;
       for (const r of data) {
-        this.reports.set(r.id, r);
+        if (r.id) {
+          const game: GameType = r.game === 'ACC' ? 'ACC' : 'AC';
+          this.reports.set(r.id, {
+            id: r.id,
+            game,
+            reporterId: r.reporterId || '',
+            reporterTag: r.reporterTag || 'Desconocido',
+            accused: r.accused || '',
+            sessionTime: r.sessionTime || '',
+            videoUrl: r.videoUrl || '',
+            description: r.description || '',
+            createdAt: r.createdAt || new Date().toISOString(),
+            status: r.status || 'PENDING',
+            resolvedBy: r.resolvedBy,
+            resolutionReason: r.resolutionReason,
+            resolvedAt: r.resolvedAt,
+          });
+        }
       }
     } catch (err) {
       console.error('Error cargando data/reports.json:', err);
@@ -56,6 +76,7 @@ export class ReportsService {
   }
 
   public createReport(data: {
+    game: GameType;
     reporterId: string;
     reporterTag: string;
     accused: string;
@@ -63,7 +84,8 @@ export class ReportsService {
     videoUrl: string;
     description: string;
   }): IncidentReport {
-    const id = `REP-${Math.floor(1000 + Math.random() * 9000)}`;
+    const code = Math.floor(1000 + Math.random() * 9000);
+    const id = `${data.game}-${code}`;
     const report: IncidentReport = {
       id,
       ...data,
@@ -78,6 +100,12 @@ export class ReportsService {
 
   public getReport(id: string): IncidentReport | undefined {
     return this.reports.get(id);
+  }
+
+  public getReportsByGame(game?: GameType): IncidentReport[] {
+    const all = Array.from(this.reports.values());
+    if (!game) return all;
+    return all.filter((r) => r.game === game);
   }
 
   public resolveReport(

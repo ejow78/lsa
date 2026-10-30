@@ -16,10 +16,24 @@ const envSchema = z.object({
     .url()
     .optional()
     .default('https://aclsa.emperorservers.com'),
+  LIVE_TIMING_WEB_URL: z
+    .string()
+    .url()
+    .optional()
+    .default('https://live.latamsimracing.com/'),
   STATUS_CHANNEL_ID: z.string().min(1, 'STATUS_CHANNEL_ID es obligatorio'),
   ALERT_CHANNEL_ID: z.string().min(1, 'ALERT_CHANNEL_ID es obligatorio'),
   ALERT_ROLE_ID: z.string().min(1, 'ALERT_ROLE_ID es obligatorio'),
   MOD_ROLE_ID: z.string().default('1529967623864062002'),
+
+  // Canales de Comisariato / Stewards (Donde llegan las denuncias)
+  AC_STEWARDS_CHANNEL_ID: z.string().default('1565867684673888387'),
+  ACC_STEWARDS_CHANNEL_ID: z.string().default('1565867710502666251'),
+
+  // Canales donde los usuarios hacen denuncias o ven el panel de reportes
+  AC_REPORT_CHANNEL_ID: z.string().default('1565868265316814858'),
+  ACC_REPORT_CHANNEL_ID: z.string().default('1565868469508120717'),
+
   STEWARDS_CHANNEL_ID: z.string().optional(),
   SANCTIONS_CHANNEL_ID: z.string().optional(),
   POLLING_INTERVAL_SECONDS: z.coerce.number().int().min(10).default(30),
@@ -48,8 +62,32 @@ export const env = {
   get joinHttpPort(): number {
     return parsedEnv.data.AC_JOIN_HTTP_PORT ?? parsedEnv.data.EMPEROR_HTTP_PORT;
   },
+  get acStewardsChannelId(): string {
+    return (
+      parsedEnv.data.AC_STEWARDS_CHANNEL_ID ||
+      parsedEnv.data.STEWARDS_CHANNEL_ID ||
+      parsedEnv.data.ALERT_CHANNEL_ID
+    );
+  },
+  get accStewardsChannelId(): string {
+    return (
+      parsedEnv.data.ACC_STEWARDS_CHANNEL_ID ||
+      parsedEnv.data.STEWARDS_CHANNEL_ID ||
+      parsedEnv.data.ALERT_CHANNEL_ID
+    );
+  },
+  get acReportChannelId(): string {
+    return parsedEnv.data.AC_REPORT_CHANNEL_ID;
+  },
+  get accReportChannelId(): string {
+    return parsedEnv.data.ACC_REPORT_CHANNEL_ID;
+  },
   get stewardsChannelId(): string {
-    return parsedEnv.data.STEWARDS_CHANNEL_ID || parsedEnv.data.ALERT_CHANNEL_ID;
+    return (
+      parsedEnv.data.STEWARDS_CHANNEL_ID ||
+      parsedEnv.data.AC_STEWARDS_CHANNEL_ID ||
+      parsedEnv.data.ALERT_CHANNEL_ID
+    );
   },
   get sanctionsChannelId(): string {
     return parsedEnv.data.SANCTIONS_CHANNEL_ID || parsedEnv.data.ALERT_CHANNEL_ID;
