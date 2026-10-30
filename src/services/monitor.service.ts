@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
   ActivityType,
   ActionRowBuilder,
+  AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
@@ -15,6 +16,7 @@ import {
   type ConnectedDriver,
   type ServerLiveStatus,
 } from './emperor.service.js';
+import { trackMapService } from './track-map.service.js';
 import {
   buildServerStatusMessagePayload,
   buildSessionResultMessagePayload,
@@ -101,7 +103,7 @@ export class MonitorService {
     }
 
     const textChannel = channel as TextChannel;
-    const payload = buildServerStatusMessagePayload(status);
+    const payload = await buildServerStatusMessagePayload(status);
 
     if (this.statusMessageId) {
       try {
@@ -222,13 +224,25 @@ export class MonitorService {
       if (status.trackPreviewUrl) {
         joinEmbed.setThumbnail(status.trackPreviewUrl);
       }
+
+      let files: AttachmentBuilder[] | undefined;
       if (status.trackLayoutUrl) {
-        joinEmbed.setImage(status.trackLayoutUrl);
+        const mapAttachment = await trackMapService.getHorizontalTrackMapAttachment(
+          status.trackLayoutUrl,
+          `${status.trackName}_${status.trackConfig || ''}`
+        );
+        if (mapAttachment) {
+          joinEmbed.setImage(mapAttachment.attachmentUrl);
+          files = [mapAttachment.attachment];
+        } else {
+          joinEmbed.setImage(status.trackLayoutUrl);
+        }
       }
 
       try {
         await (alertChannel as TextChannel).send({
           embeds: [joinEmbed],
+          files,
         });
         console.log(
           `Aviso de ingreso enviado: ${driver.name} (${driver.carModel})`
@@ -289,8 +303,19 @@ export class MonitorService {
     if (status.trackPreviewUrl) {
       alertEmbed.setThumbnail(status.trackPreviewUrl);
     }
+
+    let files: AttachmentBuilder[] | undefined;
     if (status.trackLayoutUrl) {
-      alertEmbed.setImage(status.trackLayoutUrl);
+      const mapAttachment = await trackMapService.getHorizontalTrackMapAttachment(
+        status.trackLayoutUrl,
+        `${status.trackName}_${status.trackConfig || ''}`
+      );
+      if (mapAttachment) {
+        alertEmbed.setImage(mapAttachment.attachmentUrl);
+        files = [mapAttachment.attachment];
+      } else {
+        alertEmbed.setImage(status.trackLayoutUrl);
+      }
     }
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -309,6 +334,7 @@ export class MonitorService {
         content: `<@&${env.ALERT_ROLE_ID}> ¡Hay gente girando en el servidor!`,
         embeds: [alertEmbed],
         components: [row],
+        files,
         allowedMentions: {
           roles: [env.ALERT_ROLE_ID],
         },
@@ -353,7 +379,7 @@ export class MonitorService {
     }
 
     try {
-      const payload = buildSessionResultMessagePayload(latestResult);
+      const payload = await buildSessionResultMessagePayload(latestResult);
       await (alertChannel as TextChannel).send(payload);
       console.log(
         `🏁 Resultado de sesión publicado automáticamente: ${latestResult.fileName}`

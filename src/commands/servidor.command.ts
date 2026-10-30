@@ -21,7 +21,7 @@ export const servidorCommand: SlashCommand = {
     await interaction.deferReply({ ephemeral: !isPublic });
 
     const status = await emperorService.getLiveStatus();
-    const payload = buildServerStatusMessagePayload(status);
+    const payload = await buildServerStatusMessagePayload(status);
 
     await interaction.editReply(payload);
   },

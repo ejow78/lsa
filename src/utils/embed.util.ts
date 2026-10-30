@@ -1,5 +1,6 @@
 import {
   ActionRowBuilder,
+  AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
@@ -10,18 +11,24 @@ import {
   type ServerLiveStatus,
   type SessionResultSummary,
 } from '../services/emperor.service.js';
+import { trackMapService } from '../services/track-map.service.js';
 
 const COLOR_ACTIVE_GREEN = 0x2ecc71;
 const COLOR_EMPTY_GREY = 0x95a5a6;
 const COLOR_OFFLINE_RED = 0xe74c3c;
 
+export interface MessagePayloadResult {
+  embeds: [EmbedBuilder];
+  components: [ActionRowBuilder<ButtonBuilder>];
+  files?: AttachmentBuilder[];
+}
+
 /**
  * Construye el Embed principal del estado del servidor y la fila de botones interactivos.
  */
-export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
-  embeds: [EmbedBuilder];
-  components: [ActionRowBuilder<ButtonBuilder>];
-} {
+export async function buildServerStatusMessagePayload(
+  status: ServerLiveStatus
+): Promise<MessagePayloadResult> {
   const buttonJoinUrl = emperorService.getContentManagerJoinButtonUrl();
   const liveTimingWebUrl = emperorService.getLiveTimingWebUrl();
 
@@ -113,8 +120,19 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
   if (status.trackPreviewUrl) {
     embed.setThumbnail(status.trackPreviewUrl);
   }
+
+  let files: AttachmentBuilder[] | undefined;
   if (status.trackLayoutUrl) {
-    embed.setImage(status.trackLayoutUrl);
+    const mapAttachment = await trackMapService.getHorizontalTrackMapAttachment(
+      status.trackLayoutUrl,
+      `${status.trackName}_${status.trackConfig || ''}`
+    );
+    if (mapAttachment) {
+      embed.setImage(mapAttachment.attachmentUrl);
+      files = [mapAttachment.attachment];
+    } else {
+      embed.setImage(status.trackLayoutUrl);
+    }
   } else if (status.trackPreviewUrl) {
     embed.setImage(status.trackPreviewUrl);
   }
@@ -130,16 +148,15 @@ export function buildServerStatusMessagePayload(status: ServerLiveStatus): {
       .setURL(liveTimingWebUrl)
   );
 
-  return { embeds: [embed], components: [row] };
+  return { embeds: [embed], components: [row], files };
 }
 
 /**
  * Construye el Embed de resultados de una sesión finalizada (Practice, Qualy o Race).
  */
-export function buildSessionResultMessagePayload(result: SessionResultSummary): {
-  embeds: [EmbedBuilder];
-  components: [ActionRowBuilder<ButtonBuilder>];
-} {
+export async function buildSessionResultMessagePayload(
+  result: SessionResultSummary
+): Promise<MessagePayloadResult> {
   const standingsText = result.standings
     .slice(0, 15)
     .map((entry) => {
@@ -174,8 +191,18 @@ export function buildSessionResultMessagePayload(result: SessionResultSummary): 
     .setTimestamp(new Date())
     .setFooter({ text: 'LATAM SimRacing Alliance • Telemetría Oficial' });
 
+  let files: AttachmentBuilder[] | undefined;
   if (result.trackLayoutUrl) {
-    embed.setImage(result.trackLayoutUrl);
+    const mapAttachment = await trackMapService.getHorizontalTrackMapAttachment(
+      result.trackLayoutUrl,
+      `${result.trackName}_${result.trackConfig || ''}`
+    );
+    if (mapAttachment) {
+      embed.setImage(mapAttachment.attachmentUrl);
+      files = [mapAttachment.attachment];
+    } else {
+      embed.setImage(result.trackLayoutUrl);
+    }
   }
 
   const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
@@ -197,5 +224,5 @@ export function buildSessionResultMessagePayload(result: SessionResultSummary): 
       .setURL(emperorService.getResultsWebUrl())
   );
 
-  return { embeds: [embed], components: [row] };
+  return { embeds: [embed], components: [row], files };
 }

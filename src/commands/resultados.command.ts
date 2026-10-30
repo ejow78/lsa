@@ -31,7 +31,7 @@ export const resultadosCommand: SlashCommand = {
       return;
     }
 
-    const payload = buildSessionResultMessagePayload(latestResult);
+    const payload = await buildSessionResultMessagePayload(latestResult);
     await interaction.editReply(payload);
   },
 };

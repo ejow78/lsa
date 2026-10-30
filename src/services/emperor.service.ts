@@ -82,6 +82,7 @@ export interface SessionResultSummary {
   fileName: string;
   webUrl: string;
   trackName: string;
+  trackConfig?: string;
   trackPreviewUrl: string;
   trackLayoutUrl?: string;
   sessionType: string;
@@ -635,6 +636,7 @@ export class EmperorService {
           fileName,
           webUrl: `${base}/results/${pageSlug}`,
           trackName: this.formatIdentifier(rawTrack),
+          trackConfig: rawConfig,
           trackPreviewUrl: this.getTrackPreviewImageUrl(rawTrack, rawConfig),
           trackLayoutUrl: this.getTrackLayoutImageUrl(rawTrack, rawConfig),
           sessionType: this.parseSessionType(data.Type),
