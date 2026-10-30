@@ -301,8 +301,17 @@ export class EmperorService {
     return `${base}/results`;
   }
 
-  public getTrackPreviewImageUrl(rawTrack: string, _rawConfig?: string): string {
+  public getTrackPreviewImageUrl(rawTrack: string, rawConfig?: string): string {
     const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
+    if (rawConfig && rawConfig.trim() !== '') {
+      return `${base}/content/tracks/${rawTrack}/ui/${rawConfig}/preview.png`;
+    }
+    if (rawTrack.includes('-')) {
+      const idx = rawTrack.lastIndexOf('-');
+      const trackBase = rawTrack.slice(0, idx);
+      const configSub = rawTrack.slice(idx + 1);
+      return `${base}/content/tracks/${trackBase}/ui/${configSub}/preview.png`;
+    }
     return `${base}/content/tracks/${rawTrack}/ui/preview.png`;
   }
 
@@ -310,6 +319,12 @@ export class EmperorService {
     const base = env.EMPEROR_WEB_URL.replace(/\/+$/, '');
     if (rawConfig && rawConfig.trim() !== '') {
       return `${base}/content/tracks/${rawTrack}/${rawConfig}/map.png`;
+    }
+    if (rawTrack.includes('-')) {
+      const idx = rawTrack.lastIndexOf('-');
+      const trackBase = rawTrack.slice(0, idx);
+      const configSub = rawTrack.slice(idx + 1);
+      return `${base}/content/tracks/${trackBase}/${configSub}/map.png`;
     }
     return `${base}/content/tracks/${rawTrack}/map.png`;
   }
