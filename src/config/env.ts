@@ -34,6 +34,10 @@ const envSchema = z.object({
   AC_REPORT_CHANNEL_ID: z.string().default('1565868265316814858'),
   ACC_REPORT_CHANNEL_ID: z.string().default('1565868469508120717'),
 
+  // Canales públicos donde se publican las sanciones y veredictos oficiales
+  AC_SANCTIONS_CHANNEL_ID: z.string().default('1566145766450401300'),
+  ACC_SANCTIONS_CHANNEL_ID: z.string().default('1566145732380196974'),
+
   // Bienvenida, Reglas y Rol de Piloto
   WELCOME_CHANNEL_ID: z.string().default('1566120096886296708'),
   RULES_CHANNEL_ID: z.string().default('1529959238271635496'),
@@ -98,6 +102,20 @@ export const env = {
   },
   get sanctionsChannelId(): string {
     return parsedEnv.data.SANCTIONS_CHANNEL_ID || parsedEnv.data.ALERT_CHANNEL_ID;
+  },
+  get acSanctionsChannelId(): string {
+    return (
+      parsedEnv.data.AC_SANCTIONS_CHANNEL_ID ||
+      parsedEnv.data.SANCTIONS_CHANNEL_ID ||
+      '1566145766450401300'
+    );
+  },
+  get accSanctionsChannelId(): string {
+    return (
+      parsedEnv.data.ACC_SANCTIONS_CHANNEL_ID ||
+      parsedEnv.data.SANCTIONS_CHANNEL_ID ||
+      '1566145732380196974'
+    );
   },
   get welcomeChannelId(): string {
     return parsedEnv.data.WELCOME_CHANNEL_ID;

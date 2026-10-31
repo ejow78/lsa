@@ -186,40 +186,69 @@ export function registerInteractionCreateEvent(client: Client): void {
           console.error('Error actualizando mensaje de comisarios:', err);
         }
 
-        // Publicar en el canal público de sanciones si existe y está configurado
+        // Publicar en el canal público de sanciones correspondiente (AC o ACC)
+        const targetSanctionsChannelId =
+          report.game === 'ACC'
+            ? env.accSanctionsChannelId
+            : env.acSanctionsChannelId;
+
         try {
-          if (
-            env.sanctionsChannelId &&
-            env.sanctionsChannelId !== env.acStewardsChannelId &&
-            env.sanctionsChannelId !== env.accStewardsChannelId
-          ) {
+          if (targetSanctionsChannelId) {
             const sanctionsChannel = await client.channels
-              .fetch(env.sanctionsChannelId)
+              .fetch(targetSanctionsChannelId)
               .catch(() => null);
 
             if (sanctionsChannel && sanctionsChannel.isTextBased()) {
               const publicEmbed = new EmbedBuilder()
-                .setTitle(`Veredicto de Comisariato • [${gameName}] • Caso ${report.id}`)
+                .setTitle(`🚨 Resolución Oficial de Comisariato • Caso #${report.id}`)
                 .setColor(0xe74c3c)
                 .setDescription(
                   `**Simulador:** \`${gameName}\`\n` +
                   `**Piloto / Auto Sancionado:** \`${report.accused}\`\n` +
                   `**Sesión / Momento:** ${report.sessionTime}\n` +
                   `**Sanción Aplicada:** **${penaltyApplied}**\n` +
-                  `**Motivo:** ${penaltyReason}\n\n` +
-                  `*Resolución emitida por LATAM SimRacing Alliance.*`
+                  `**Motivo:** ${penaltyReason}\n` +
+                  `**Comisario:** <@${interaction.user.id}>\n\n` +
+                  `*Resolución emitida por el Comisariato Deportivo de LATAM SimRacing Alliance.*`
                 )
+                .setFooter({ text: `LATAM SimRacing Alliance • Caso #${report.id}` })
                 .setTimestamp(new Date());
 
               await (sanctionsChannel as TextChannel).send({ embeds: [publicEmbed] });
+              console.log(`✅ Sanción publicada en canal #${(sanctionsChannel as TextChannel).name} (${targetSanctionsChannelId})`);
             }
           }
         } catch (err) {
-          console.error('Error publicando sanción oficial:', err);
+          console.error('Error publicando sanción oficial en canal:', err);
+        }
+
+        // Notificar por mensaje privado (DM) al piloto denunciante
+        try {
+          if (report.reporterId) {
+            const reporterUser = await client.users.fetch(report.reporterId).catch(() => null);
+            if (reporterUser) {
+              const dmEmbed = new EmbedBuilder()
+                .setTitle(`📋 Veredicto de tu Denuncia #${report.id} • [${gameName}]`)
+                .setColor(0xe74c3c)
+                .setDescription(
+                  `Hola **${report.reporterDriverName || reporterUser.username}**, los comisarios deportivos han resuelto tu denuncia:\n\n` +
+                  `• **Piloto denunciado:** \`${report.accused}\`\n` +
+                  `• **Sanción aplicada:** **${penaltyApplied}**\n` +
+                  `• **Motivo oficial:** ${penaltyReason}\n\n` +
+                  `Puedes consultar el registro público en <#${targetSanctionsChannelId}>.`
+                )
+                .setFooter({ text: 'LATAM SimRacing Alliance' })
+                .setTimestamp(new Date());
+
+              await reporterUser.send({ embeds: [dmEmbed] }).catch(() => null);
+            }
+          }
+        } catch {
+          // Ignorar si el piloto tiene los DMs cerrados
         }
 
         await interaction.reply({
-          content: `✅ Sanción para el reporte **${reportId}** ([${gameName}]) aplicada y registrada correctamente.`,
+          content: `✅ Sanción para el reporte **${reportId}** ([${gameName}]) aplicada, publicada en <#${targetSanctionsChannelId}> y notificada al denunciante.`,
           ephemeral: true,
         });
         return;
@@ -474,8 +503,33 @@ export function registerInteractionCreateEvent(client: Client): void {
             });
           }
 
+          // Notificar al denunciante sobre la resolución por DM
+          try {
+            if (report.reporterId) {
+              const reporterUser = await client.users.fetch(report.reporterId).catch(() => null);
+              if (reporterUser) {
+                const gameName = report.game === 'ACC' ? 'Assetto Corsa Competizione' : 'Assetto Corsa';
+                const dmEmbed = new EmbedBuilder()
+                  .setTitle(`📋 Actualización de tu Denuncia #${report.id} • [${gameName}]`)
+                  .setColor(0x2ecc71)
+                  .setDescription(
+                    `Hola **${report.reporterDriverName || reporterUser.username}**, los comisarios han revisado el incidente reportado:\n\n` +
+                    `• **Piloto investigado:** \`${report.accused}\`\n` +
+                    `• **Dictamen oficial:** **Lance de carrera / No punible**\n` +
+                    `• **Detalle:** Maniobra considerada incidente de carrera sin intencionalidad punible. El caso ha sido cerrado sin sanción.`
+                  )
+                  .setFooter({ text: 'LATAM SimRacing Alliance • Comisariato' })
+                  .setTimestamp(new Date());
+
+                await reporterUser.send({ embeds: [dmEmbed] }).catch(() => null);
+              }
+            }
+          } catch {
+            // Ignorar si el piloto tiene los DMs cerrados
+          }
+
           await interaction.reply({
-            content: `✅ Reporte **${reportId}** desestimado como lance de carrera.`,
+            content: `✅ Reporte **${reportId}** desestimado como lance de carrera y notificado al denunciante.`,
             ephemeral: true,
           });
           return;
