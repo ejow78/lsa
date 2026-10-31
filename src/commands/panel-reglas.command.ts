@@ -30,7 +30,7 @@ export function buildRulesEmbed(guildName: string = 'LATAM SimRacing Alliance'):
       `• **Conexión a internet:** Asegúrate de tener una conexión estable. Si experimentas lag severo o teletransportaciones, mantén un margen de seguridad razonable con otros coches.\n\n` +
       `### 3️⃣ Canales, Contenido y Roles\n` +
       `• **Selección de juegos:** Pásate por <#${env.rolesChannelId}> para marcar los títulos que juegas (AC, ACC, AC Evo, Rally, F1, WRC) y saber dónde te especializas.\n` +
-      `• **Foro de Mods:** Al compartir pistas, coches o guías en los foros de mods (<#1529974353595334796>, <#1562226934803337216>, <#1532932994141130892>) usa títulos descriptivos. Prohibido compartir enlaces maliciosos o contenido pirata/filtrado (leaks).\n\n` +
+      `• **Foros de Mods y Contenido:** Si quieres ingresar a los servidores de Assetto Corsa, tienes que descargar los contenidos que están en los canales de mods (<#1529974353595334796>, <#1562226934803337216>, <#1532932994141130892>).\n\n` +
       `### 4️⃣ Formato de Servidores y Quedadas\n` +
       `• **Organización libre:** Los pilotos son libres de coordinar partidas, salas privadas o rodadas casuales en los canales de chat de cada juego respectivo.\n` +
       `• **Avisos de partidas:** Si vas a abrir un servidor o crear una sala multijugador, puedes coordinarlo en el canal del juego y etiquetar a los interesados.\n` +
