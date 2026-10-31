@@ -103,6 +103,28 @@ export class MonitorService {
     }
 
     const textChannel = channel as TextChannel;
+
+    // Limpieza automática de mensajes duplicados en el canal de estado:
+    // Conserva únicamente el mensaje más reciente y elimina cualquier duplicado viejo del bot.
+    try {
+      const recentMessages = await textChannel.messages.fetch({ limit: 25 });
+      const botMessages = Array.from(recentMessages.values())
+        .filter((m) => m.author.id === this.client.user?.id)
+        .sort((a, b) => b.createdTimestamp - a.createdTimestamp);
+
+      if (botMessages.length > 0) {
+        // Tomamos el mensaje más reciente del bot
+        this.statusMessageId = botMessages[0].id;
+
+        // Si existen duplicados anteriores del bot, los eliminamos
+        for (let i = 1; i < botMessages.length; i++) {
+          await botMessages[i].delete().catch(() => null);
+        }
+      }
+    } catch (err) {
+      // Ignorar error si no se tienen permisos para ver historial
+    }
+
     const payload = await buildServerStatusMessagePayload(status);
 
     if (this.statusMessageId) {
@@ -111,12 +133,21 @@ export class MonitorService {
           this.statusMessageId
         );
         await existingMessage.edit(payload);
+        await this.savePersistedState();
         return;
-      } catch {
-        console.log(
-          'ℹ️ El mensaje de estado anterior no existe o fue eliminado; creando uno nuevo...'
-        );
-        this.statusMessageId = null;
+      } catch (err: any) {
+        if (err.code === 10008) {
+          console.log(
+            'ℹ️ El mensaje de estado anterior fue eliminado; creando uno nuevo...'
+          );
+          this.statusMessageId = null;
+        } else {
+          console.warn(
+            '⚠️ Error temporal al editar el mensaje de estado (se reintentará en el próximo ciclo):',
+            err.message
+          );
+          return;
+        }
       }
     }
 
