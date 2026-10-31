@@ -266,28 +266,8 @@ export class MonitorService {
           joinEmbed.setThumbnail(status.trackPreviewUrl);
         }
 
-        let files: AttachmentBuilder[] | undefined;
-        if (status.trackLayoutUrl) {
-          try {
-            const mapAttachment = await trackMapService.getHorizontalTrackMapAttachment(
-              status.trackLayoutUrl,
-              `${status.trackName}_${status.trackConfig || ''}`
-            );
-            if (mapAttachment) {
-              joinEmbed.setImage(mapAttachment.attachmentUrl);
-              files = [mapAttachment.attachment];
-            } else {
-              joinEmbed.setImage(status.trackLayoutUrl);
-            }
-          } catch (mapErr) {
-            console.warn('⚠️ No se pudo procesar el layout de circuito, usando imagen directa:', mapErr);
-            joinEmbed.setImage(status.trackLayoutUrl);
-          }
-        }
-
         await alertChannel.send({
           embeds: [joinEmbed],
-          files,
         });
 
         console.log(
