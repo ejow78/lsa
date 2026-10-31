@@ -69,18 +69,24 @@ export function registerInteractionCreateEvent(client: Client): void {
           game = 'ACC';
         }
 
+        let driverName = 'Piloto';
+        try {
+          driverName = interaction.fields.getTextInputValue('report_driver_name');
+        } catch {
+          driverName = interaction.user.username;
+        }
+
         const accused = interaction.fields.getTextInputValue('report_accused');
         const sessionTime = interaction.fields.getTextInputValue('report_session_time');
-        const videoUrl = interaction.fields.getTextInputValue('report_video_url');
         const description = interaction.fields.getTextInputValue('report_description');
 
         const report = reportsService.createReport({
           game,
           reporterId: interaction.user.id,
           reporterTag: interaction.user.tag || interaction.user.username,
+          reporterDriverName: driverName,
           accused,
           sessionTime,
-          videoUrl,
           description,
         });
 
@@ -100,10 +106,9 @@ export function registerInteractionCreateEvent(client: Client): void {
               .setColor(game === 'ACC' ? 0xe67e22 : 0xe74c3c)
               .setDescription(
                 `**Simulador:** \`${gameName}\`\n` +
-                `**Denunciante:** <@${interaction.user.id}> (${interaction.user.username})\n` +
+                `**Piloto Denunciante:** **${driverName}** (<@${interaction.user.id}>)\n` +
                 `**Piloto / Auto Denunciado:** \`${accused}\`\n` +
-                `**Momento / Vuelta:** ${sessionTime}\n` +
-                `**Video de Maniobra:** [Ver Video / Prueba en Línea](${videoUrl})\n\n` +
+                `**Momento Exacto / Vuelta:** ${sessionTime}\n\n` +
                 `**Descripción del incidente:**\n${description}`
               )
               .setFooter({ text: `Colegio de Comisarios LSA • ${gameName}` })
@@ -117,11 +122,7 @@ export function registerInteractionCreateEvent(client: Client): void {
               new ButtonBuilder()
                 .setCustomId(`steward_dismiss_${report.id}`)
                 .setLabel('Desestimar')
-                .setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder()
-                .setLabel('Ver Video')
-                .setStyle(ButtonStyle.Link)
-                .setURL(videoUrl)
+                .setStyle(ButtonStyle.Secondary)
             );
 
             await (stewardsChannel as TextChannel).send({
@@ -203,8 +204,7 @@ export function registerInteractionCreateEvent(client: Client): void {
                   `**Piloto / Auto Sancionado:** \`${report.accused}\`\n` +
                   `**Sesión / Momento:** ${report.sessionTime}\n` +
                   `**Sanción Aplicada:** **${penaltyApplied}**\n` +
-                  `**Motivo:** ${penaltyReason}\n` +
-                  `**Prueba en Video:** [Enlace a la repetición](${report.videoUrl})\n\n` +
+                  `**Motivo:** ${penaltyReason}\n\n` +
                   `*Resolución emitida por el Colegio de Comisarios Deportivos de LSA.*`
                 )
                 .setTimestamp(new Date());

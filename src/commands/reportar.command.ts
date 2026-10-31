@@ -18,6 +18,14 @@ export function buildReportModal(game: GameType): ModalBuilder {
     .setCustomId(`modal_report_incident_${game}`)
     .setTitle(`Denuncia • ${gameTitle}`);
 
+  const reporterNameInput = new TextInputBuilder()
+    .setCustomId('report_driver_name')
+    .setLabel('Tu Nombre de Piloto en Pista')
+    .setPlaceholder('Ej: Tu nombre y apellido en el juego')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+    .setMaxLength(100);
+
   const accusedInput = new TextInputBuilder()
     .setCustomId('report_accused')
     .setLabel('Piloto o Auto Denunciado')
@@ -28,32 +36,24 @@ export function buildReportModal(game: GameType): ModalBuilder {
 
   const sessionTimeInput = new TextInputBuilder()
     .setCustomId('report_session_time')
-    .setLabel('Sesión / Vuelta / Minuto aproximado')
+    .setLabel('Sesión / Vuelta / Momento exacto')
     .setPlaceholder('Ej: Carrera 1, Vuelta 5 (Minuto 08:30)')
     .setStyle(TextInputStyle.Short)
     .setRequired(true)
     .setMaxLength(100);
 
-  const videoUrlInput = new TextInputBuilder()
-    .setCustomId('report_video_url')
-    .setLabel('Link del Video de la maniobra (Obligatorio)')
-    .setPlaceholder('YouTube, Twitch, Streamable, Medal o Google Drive')
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-    .setMaxLength(250);
-
   const descriptionInput = new TextInputBuilder()
     .setCustomId('report_description')
     .setLabel('Descripción de lo ocurrido')
-    .setPlaceholder('Explica brevemente la maniobra (toque, cierre indebido, rejoin inseguro, etc.)')
+    .setPlaceholder('Explica detalladamente la maniobra (toque, cierre indebido, rejoin inseguro, etc.)')
     .setStyle(TextInputStyle.Paragraph)
     .setRequired(true)
     .setMaxLength(1000);
 
   modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(reporterNameInput),
     new ActionRowBuilder<TextInputBuilder>().addComponents(accusedInput),
     new ActionRowBuilder<TextInputBuilder>().addComponents(sessionTimeInput),
-    new ActionRowBuilder<TextInputBuilder>().addComponents(videoUrlInput),
     new ActionRowBuilder<TextInputBuilder>().addComponents(descriptionInput)
   );
 

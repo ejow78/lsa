@@ -8,9 +8,10 @@ export interface IncidentReport {
   game: GameType;
   reporterId: string;
   reporterTag: string;
+  reporterDriverName?: string;
   accused: string;
   sessionTime: string;
-  videoUrl: string;
+  videoUrl?: string;
   description: string;
   createdAt: string;
   status: 'PENDING' | 'PENALIZED' | 'DISMISSED';
@@ -49,9 +50,10 @@ export class ReportsService {
             game,
             reporterId: r.reporterId || '',
             reporterTag: r.reporterTag || 'Desconocido',
+            reporterDriverName: r.reporterDriverName,
             accused: r.accused || '',
             sessionTime: r.sessionTime || '',
-            videoUrl: r.videoUrl || '',
+            videoUrl: r.videoUrl,
             description: r.description || '',
             createdAt: r.createdAt || new Date().toISOString(),
             status: r.status || 'PENDING',
@@ -79,9 +81,10 @@ export class ReportsService {
     game: GameType;
     reporterId: string;
     reporterTag: string;
+    reporterDriverName?: string;
     accused: string;
     sessionTime: string;
-    videoUrl: string;
+    videoUrl?: string;
     description: string;
   }): IncidentReport {
     const code = Math.floor(1000 + Math.random() * 9000);

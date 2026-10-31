@@ -78,11 +78,12 @@ export const panelReportesCommand: SlashCommand = {
       .setDescription(
         `Bienvenido al sistema oficial de reportes y denuncias de **LATAM SimRacing Alliance**.\n\n` +
           `Si estuviste involucrado en una maniobra antideportiva, colisión o incidente que consideres punible, presiona el botón inferior para abrir el formulario oficial de comisariato.\n\n` +
-          `**Requisitos Obligatorios para Denunciar:**\n` +
-          `1. **Link de Video / Prueba:** Sube la maniobra a YouTube, Twitch, Medal, Streamable o Google Drive (con vista pública).\n` +
-          `2. **Momento exacto:** Indica sesión, número de vuelta o minuto de carrera.\n` +
-          `3. **Respeto:** Mantén un lenguaje cordial y objetivo en la descripción.\n\n` +
-          `*Los comisarios evaluarán la telemetría y el video, y la resolución se notificará de forma transparente.*`
+          `**Datos a completar en el reporte:**\n` +
+          `1. **Tu Nombre de Piloto:** Tu nombre en pista.\n` +
+          `2. **Piloto o Auto Denunciado:** Nombre del rival o auto/número.\n` +
+          `3. **Momento Exacto:** Sesión, número de vuelta o minuto de carrera.\n` +
+          `4. **Descripción:** Explica con claridad lo ocurrido.\n\n` +
+          `*Los comisarios evaluarán la telemetría y los registros de repetición del servidor.*`
       )
       .setFooter({
         text: 'LATAM SimRacing Alliance • Colegio de Comisarios Deportivos',
