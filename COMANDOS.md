@@ -185,7 +185,7 @@ Abre el formulario modal de denuncia de incidentes para los pilotos.
   * Denuncias de ACC ➔ `<#1565867710502666251>`
 * **Acciones para Comisarios:**
   * **Sancionar:** Abre modal para ingresar penalización y motivo justificado.
-  * **Desestimar:** Cierra el caso catalogándolo como lance de carrera no punible.
+  * **Desestimar:** Cierra el caso catalogándolo como incidente de carrera no punible.
 
 ---
 

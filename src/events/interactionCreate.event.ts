@@ -481,7 +481,7 @@ export function registerInteractionCreateEvent(client: Client): void {
             reportId,
             'DISMISSED',
             interaction.user.tag || interaction.user.username,
-            'Maniobra considerada Lance de Carrera o No Punible'
+            'Maniobra considerada Incidente de Carrera o No Punible'
           );
 
           if (!report) {
@@ -494,7 +494,7 @@ export function registerInteractionCreateEvent(client: Client): void {
               .setColor(0x2ecc71)
               .addFields({
                 name: 'RESOLUCIÓN OFICIAL (DESESTIMADO)',
-                value: `**Comisario:** <@${interaction.user.id}>\n**Dictamen:** Lance de carrera / No punible. Caso cerrado sin sanción.`,
+                value: `**Comisario:** <@${interaction.user.id}>\n**Dictamen:** Incidente de carrera / No punible. Caso cerrado sin sanción.`,
               });
 
             await interaction.message.edit({
@@ -515,7 +515,7 @@ export function registerInteractionCreateEvent(client: Client): void {
                   .setDescription(
                     `Hola **${report.reporterDriverName || reporterUser.username}**, los comisarios han revisado el incidente reportado:\n\n` +
                     `• **Piloto investigado:** \`${report.accused}\`\n` +
-                    `• **Dictamen oficial:** **Lance de carrera / No punible**\n` +
+                    `• **Dictamen oficial:** **Incidente de carrera / No punible**\n` +
                     `• **Detalle:** Maniobra considerada incidente de carrera sin intencionalidad punible. El caso ha sido cerrado sin sanción.`
                   )
                   .setFooter({ text: 'LATAM SimRacing Alliance • Comisariato' })
@@ -529,7 +529,7 @@ export function registerInteractionCreateEvent(client: Client): void {
           }
 
           await interaction.reply({
-            content: `✅ Reporte **${reportId}** desestimado como lance de carrera y notificado al denunciante.`,
+            content: `✅ Reporte **${reportId}** desestimado como incidente de carrera y notificado al denunciante.`,
             ephemeral: true,
           });
           return;
