@@ -230,6 +230,66 @@ export function registerInteractionCreateEvent(client: Client): void {
     // 3. MANEJO DE BOTONES INTERACTIVOS
     // -------------------------------------------------------------
     if (interaction.isButton()) {
+      // Aceptación del reglamento y otorgamiento del rol de Piloto
+      if (interaction.customId === 'accept_rules_and_verify') {
+        const guild = interaction.guild;
+        const member = interaction.member as GuildMember | null;
+
+        if (!guild || !member) {
+          await interaction.reply({
+            content: '❌ Esta acción solo puede realizarse en un servidor.',
+            ephemeral: true,
+          });
+          return;
+        }
+
+        const pilotRoleId = env.pilotRoleId;
+        let role = guild.roles.cache.get(pilotRoleId);
+
+        if (!role) {
+          role = guild.roles.cache.find(
+            (r) => r.name.toLowerCase() === 'piloto' || r.name.toLowerCase() === 'pilotos'
+          );
+        }
+
+        if (!role) {
+          await interaction.reply({
+            content: '❌ No se encontró el rol de Piloto en el servidor. Contacta a un administrador.',
+            ephemeral: true,
+          });
+          return;
+        }
+
+        const hasRole = member.roles.cache.has(role.id);
+        if (hasRole) {
+          await interaction.reply({
+            content: `🏎️ Ya cuentas con el rol de **${role.name}** y tienes acceso habilitado al servidor. ¡A rodar!`,
+            ephemeral: true,
+          });
+          return;
+        }
+
+        try {
+          await member.roles.add(role, 'Aceptación del reglamento oficial');
+
+          await interaction.reply({
+            content:
+              `✅ **¡Reglamento aceptado con éxito!**\n\n` +
+              `Se te ha asignado el rol de <@&${role.id}> 🏁.\n` +
+              `Ya tienes acceso a los canales de la comunidad. No olvides pasarte por <#${env.rolesChannelId}> para elegir tus simuladores y por <#${env.presentationChannelId}> para presentarte a la comunidad.\n\n` +
+              `*¡Bienvenido a la parrilla de LATAM SimRacing Alliance!*`,
+            ephemeral: true,
+          });
+        } catch (err) {
+          console.error('Error al asignar rol de piloto tras aceptar reglas:', err);
+          await interaction.reply({
+            content: '❌ Hubo un error al asignarte el rol. Verifica la jerarquía de roles del bot.',
+            ephemeral: true,
+          });
+        }
+        return;
+      }
+
       // Publicación interactiva de paneles desde /panel-reportes
       if (
         interaction.customId === 'publish_panel_action_AC' ||

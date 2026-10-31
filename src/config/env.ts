@@ -34,6 +34,13 @@ const envSchema = z.object({
   AC_REPORT_CHANNEL_ID: z.string().default('1565868265316814858'),
   ACC_REPORT_CHANNEL_ID: z.string().default('1565868469508120717'),
 
+  // Bienvenida, Reglas y Rol de Piloto
+  WELCOME_CHANNEL_ID: z.string().default('1566120096886296708'),
+  RULES_CHANNEL_ID: z.string().default('1529959238271635496'),
+  ROLES_CHANNEL_ID: z.string().default('1538224717876695060'),
+  PRESENTATION_CHANNEL_ID: z.string().default('1513731415911567471'),
+  PILOT_ROLE_ID: z.string().default('1529968757131186308'),
+
   STEWARDS_CHANNEL_ID: z.string().optional(),
   SANCTIONS_CHANNEL_ID: z.string().optional(),
   POLLING_INTERVAL_SECONDS: z.coerce.number().int().min(10).default(30),
@@ -91,5 +98,20 @@ export const env = {
   },
   get sanctionsChannelId(): string {
     return parsedEnv.data.SANCTIONS_CHANNEL_ID || parsedEnv.data.ALERT_CHANNEL_ID;
+  },
+  get welcomeChannelId(): string {
+    return parsedEnv.data.WELCOME_CHANNEL_ID;
+  },
+  get rulesChannelId(): string {
+    return parsedEnv.data.RULES_CHANNEL_ID;
+  },
+  get rolesChannelId(): string {
+    return parsedEnv.data.ROLES_CHANNEL_ID;
+  },
+  get presentationChannelId(): string {
+    return parsedEnv.data.PRESENTATION_CHANNEL_ID;
+  },
+  get pilotRoleId(): string {
+    return parsedEnv.data.PILOT_ROLE_ID;
   },
 };

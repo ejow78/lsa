@@ -1,16 +1,26 @@
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { env } from './config/env.js';
 import { registerReadyEvent } from './events/ready.event.js';
 import { registerInteractionCreateEvent } from './events/interactionCreate.event.js';
+import { registerGuildMemberAddEvent } from './events/guildMemberAdd.event.js';
+import { registerReactionEvents } from './events/messageReaction.event.js';
 import { startWebServer } from './web/server.js';
 import { liveTimingService } from './services/livetiming.service.js';
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
+  ],
+  partials: [Partials.Message, Partials.Reaction, Partials.User],
 });
 
 const { getMonitorService } = registerReadyEvent(client);
 registerInteractionCreateEvent(client);
+registerGuildMemberAddEvent(client);
+registerReactionEvents(client);
 
 const webServer = startWebServer(client);
 

@@ -16,6 +16,7 @@ import { anuncioCommand } from './anuncio.command.js';
 import { decirCommand } from './decir.command.js';
 import { panelReportesCommand } from './panel-reportes.command.js';
 import { panelRolesCommand } from './panel-roles.command.js';
+import { panelReglasCommand } from './panel-reglas.command.js';
 
 export const commandsList: SlashCommand[] = [
   servidorCommand,
@@ -34,6 +35,7 @@ export const commandsList: SlashCommand[] = [
   decirCommand,
   panelReportesCommand,
   panelRolesCommand,
+  panelReglasCommand,
 ];
 
 export const commandsCollection = new Collection<string, SlashCommand>();
