@@ -16,6 +16,7 @@ import {
 import { commandsCollection } from '../commands/index.js';
 import { buildReportModal } from '../commands/reportar.command.js';
 import { sendReportPanelToChannel } from '../commands/panel-reportes.command.js';
+import { GAME_ROLES_LIST } from '../commands/panel-roles.command.js';
 import { env } from '../config/env.js';
 import { reportsService, type GameType } from '../services/reports.service.js';
 
@@ -284,6 +285,73 @@ export function registerInteractionCreateEvent(client: Client): void {
           content: `✅ Panel de reportes de **${game === 'ACC' ? 'ACC' : 'Assetto Corsa'}** publicado en <#${targetChannel.id}>.`,
           ephemeral: true,
         });
+        return;
+      }
+
+      // Asignación / Remoción interactiva de roles de juegos
+      if (interaction.customId.startsWith('role_game_toggle_')) {
+        const gameId = interaction.customId.replace('role_game_toggle_', '');
+        const gameDef = GAME_ROLES_LIST.find((g) => g.id === gameId);
+
+        if (!gameDef) {
+          await interaction.reply({ content: 'Juego no reconocido.', ephemeral: true });
+          return;
+        }
+
+        const guild = interaction.guild;
+        const member = interaction.member as GuildMember | null;
+
+        if (!guild || !member) {
+          await interaction.reply({ content: 'Esta acción solo puede realizarse en un servidor.', ephemeral: true });
+          return;
+        }
+
+        // Buscar el rol en el servidor (o crearlo si todavía no existe)
+        let role = guild.roles.cache.find(
+          (r) => r.name.toLowerCase() === gameDef.name.toLowerCase()
+        );
+
+        if (!role) {
+          try {
+            role = await guild.roles.create({
+              name: gameDef.name,
+              color: gameDef.color,
+              reason: `Creación automática de rol de juego para ${gameDef.name}`,
+            });
+          } catch (err) {
+            console.error(`Error creando rol para ${gameDef.name}:`, err);
+            await interaction.reply({
+              content: '❌ No se pudo crear el rol en el servidor. Verifica los permisos del bot.',
+              ephemeral: true,
+            });
+            return;
+          }
+        }
+
+        // Si el usuario ya tiene el rol, se lo quitamos; si no lo tiene, se lo asignamos
+        const hasRole = member.roles.cache.has(role.id);
+
+        try {
+          if (hasRole) {
+            await member.roles.remove(role);
+            await interaction.reply({
+              content: `❌ Se te ha retirado el rol **${gameDef.name}**.`,
+              ephemeral: true,
+            });
+          } else {
+            await member.roles.add(role);
+            await interaction.reply({
+              content: `✅ ¡Se te ha asignado el rol **${gameDef.name}**!`,
+              ephemeral: true,
+            });
+          }
+        } catch (err) {
+          console.error(`Error alternando rol para ${gameDef.name}:`, err);
+          await interaction.reply({
+            content: '❌ Error al modificar tus roles. Verifica que el rol del bot esté por encima en la jerarquía de roles de Discord.',
+            ephemeral: true,
+          });
+        }
         return;
       }
 
