@@ -33,7 +33,7 @@ export function registerGuildMemberAddEvent(client: Client): void {
         .setTitle('🏁 ¡Bienvenido/a a LATAM SimRacing Alliance! 🏎️')
         .setColor(0xe74c3c)
         .setDescription(
-          `¡Hola ${member}! Te damos una cálida bienvenida a la comunidad oficial de SimRacing de **LATAM**.\n\n` +
+          `¡Hola ${member}! Te damos una cálida bienvenida a la comunidad oficial de **LATAM SimRacing Alliance**.\n\n` +
           `Para disfrutar al máximo y participar en nuestras salas y campeonatos, sigue estos pasos:\n\n` +
           `1️⃣ **Reglamento y Rol de Piloto:**\n` +
           `Pásate por <#${env.rulesChannelId}> y presiona el botón verde **✅ Aceptar Reglamento** para recibir tu rol de <@&${env.pilotRoleId}> y desbloquear el servidor.\n\n` +
