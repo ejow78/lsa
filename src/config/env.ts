@@ -21,9 +21,9 @@ const envSchema = z.object({
     .url()
     .optional()
     .default('https://live.latamsimracing.com/'),
-  STATUS_CHANNEL_ID: z.string().min(1, 'STATUS_CHANNEL_ID es obligatorio'),
-  ALERT_CHANNEL_ID: z.string().min(1, 'ALERT_CHANNEL_ID es obligatorio'),
-  ALERT_ROLE_ID: z.string().min(1, 'ALERT_ROLE_ID es obligatorio'),
+  STATUS_CHANNEL_ID: z.string().default('1564808711883464805'),
+  ALERT_CHANNEL_ID: z.string().default('1564808847267467395'),
+  ALERT_ROLE_ID: z.string().default('1529968757131186308'),
   MOD_ROLE_ID: z.string().default('1529967623864062002'),
 
   // Canales de Comisariato / Stewards (Donde llegan las denuncias)

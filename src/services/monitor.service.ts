@@ -230,61 +230,67 @@ export class MonitorService {
 
     if (newlyJoinedDrivers.length === 0) return;
 
-    console.log(
-      `🏎️ [Monitor] Detectado ingreso de ${newlyJoinedDrivers.length} piloto(s): ${newlyJoinedDrivers.map((d) => `${d.name} (${d.carModel})`).join(', ')}`
-    );
-
-    const alertChannel = await this.client.channels
+    const alertChannel = (await this.client.channels
       .fetch(env.ALERT_CHANNEL_ID)
-      .catch(() => null);
+      .catch(() => null)) as TextChannel | null;
 
     if (!alertChannel || !alertChannel.isTextBased() || !('send' in alertChannel)) {
       console.warn(`⚠️ [Monitor] Canal de avisos (${env.ALERT_CHANNEL_ID}) no encontrado o sin permisos de envío.`);
       return;
     }
 
+    console.log(
+      `🏎️ [Monitor] Enviando aviso al canal #${alertChannel.name} (${alertChannel.id}) para ${newlyJoinedDrivers.length} piloto(s): ${newlyJoinedDrivers.map((d) => `${d.name} (${d.carModel})`).join(', ')}`
+    );
+
     for (const driver of newlyJoinedDrivers) {
-      const flag = emperorService.formatNationFlag(driver.nation);
-      const flagPrefix = flag ? `${flag} ` : '';
-
-      const joinEmbed = new EmbedBuilder()
-        .setTitle('Piloto en pista')
-        .setDescription(
-          `**Piloto:** ${flagPrefix}**${driver.name}**\n` +
-            `**Auto:** *${driver.carModel}*\n` +
-            `**Circuito:** ${status.trackName} (${status.sessionType}) • **${status.connectedDriversCount}/${status.maxClients}** conectados`
-        )
-        .setColor(0x2ecc71)
-        .setTimestamp(new Date());
-
-      if (status.trackPreviewUrl) {
-        joinEmbed.setThumbnail(status.trackPreviewUrl);
-      }
-
-      let files: AttachmentBuilder[] | undefined;
-      if (status.trackLayoutUrl) {
-        const mapAttachment = await trackMapService.getHorizontalTrackMapAttachment(
-          status.trackLayoutUrl,
-          `${status.trackName}_${status.trackConfig || ''}`
-        );
-        if (mapAttachment) {
-          joinEmbed.setImage(mapAttachment.attachmentUrl);
-          files = [mapAttachment.attachment];
-        } else {
-          joinEmbed.setImage(status.trackLayoutUrl);
-        }
-      }
-
       try {
-        await (alertChannel as TextChannel).send({
+        const flag = emperorService.formatNationFlag(driver.nation);
+        const flagPrefix = flag ? `${flag} ` : '';
+
+        const joinEmbed = new EmbedBuilder()
+          .setTitle('Piloto en pista')
+          .setDescription(
+            `**Piloto:** ${flagPrefix}**${driver.name}**\n` +
+              `**Auto:** *${driver.carModel}*\n` +
+              `**Circuito:** ${status.trackName} (${status.sessionType}) • **${status.connectedDriversCount}/${status.maxClients}** conectados`
+          )
+          .setColor(0x2ecc71)
+          .setTimestamp(new Date());
+
+        if (status.trackPreviewUrl) {
+          joinEmbed.setThumbnail(status.trackPreviewUrl);
+        }
+
+        let files: AttachmentBuilder[] | undefined;
+        if (status.trackLayoutUrl) {
+          try {
+            const mapAttachment = await trackMapService.getHorizontalTrackMapAttachment(
+              status.trackLayoutUrl,
+              `${status.trackName}_${status.trackConfig || ''}`
+            );
+            if (mapAttachment) {
+              joinEmbed.setImage(mapAttachment.attachmentUrl);
+              files = [mapAttachment.attachment];
+            } else {
+              joinEmbed.setImage(status.trackLayoutUrl);
+            }
+          } catch (mapErr) {
+            console.warn('⚠️ No se pudo procesar el layout de circuito, usando imagen directa:', mapErr);
+            joinEmbed.setImage(status.trackLayoutUrl);
+          }
+        }
+
+        await alertChannel.send({
           embeds: [joinEmbed],
           files,
         });
+
         console.log(
-          `Aviso de ingreso enviado: ${driver.name} (${driver.carModel})`
+          `✅ [Aviso Enviado] Piloto en pista: ${driver.name} (${driver.carModel}) en #${alertChannel.name}`
         );
       } catch (error) {
-        console.error('❌ Error al enviar aviso de ingreso de piloto:', error);
+        console.error(`❌ Error al enviar aviso de ingreso de piloto (${driver.name}):`, error);
       }
     }
   }
