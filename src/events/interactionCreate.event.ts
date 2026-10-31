@@ -15,6 +15,7 @@ import {
 } from 'discord.js';
 import { commandsCollection } from '../commands/index.js';
 import { buildReportModal } from '../commands/reportar.command.js';
+import { sendReportPanelToChannel } from '../commands/panel-reportes.command.js';
 import { env } from '../config/env.js';
 import { reportsService, type GameType } from '../services/reports.service.js';
 
@@ -228,6 +229,64 @@ export function registerInteractionCreateEvent(client: Client): void {
     // 3. MANEJO DE BOTONES INTERACTIVOS
     // -------------------------------------------------------------
     if (interaction.isButton()) {
+      // Publicación interactiva de paneles desde /panel-reportes
+      if (
+        interaction.customId === 'publish_panel_action_AC' ||
+        interaction.customId === 'publish_panel_action_ACC' ||
+        interaction.customId === 'publish_panel_action_BOTH'
+      ) {
+        const member = interaction.member as GuildMember | null;
+        const isAdmin = member?.permissions?.has(PermissionFlagsBits.Administrator);
+        const hasModRole =
+          member?.roles instanceof GuildMemberRoleManager
+            ? member.roles.cache.has(env.MOD_ROLE_ID)
+            : Array.isArray(member?.roles) && (member.roles as string[]).includes(env.MOD_ROLE_ID);
+
+        if (!isAdmin && !hasModRole) {
+          await interaction.reply({
+            content: '❌ Solo los administradores pueden publicar el panel.',
+            ephemeral: true,
+          });
+          return;
+        }
+
+        if (interaction.customId === 'publish_panel_action_BOTH') {
+          const acCh = (await client.channels
+            .fetch(env.acReportChannelId)
+            .catch(() => null)) as TextChannel | null;
+          const accCh = (await client.channels
+            .fetch(env.accReportChannelId)
+            .catch(() => null)) as TextChannel | null;
+
+          if (acCh && acCh.isTextBased()) await sendReportPanelToChannel(acCh, 'AC');
+          if (accCh && accCh.isTextBased()) await sendReportPanelToChannel(accCh, 'ACC');
+
+          await interaction.reply({
+            content: `✅ Paneles publicados en <#${env.acReportChannelId}> (AC) y en <#${env.accReportChannelId}> (ACC).`,
+            ephemeral: true,
+          });
+          return;
+        }
+
+        const game = interaction.customId === 'publish_panel_action_ACC' ? 'ACC' : 'AC';
+        const targetChannelId = game === 'ACC' ? env.accReportChannelId : env.acReportChannelId;
+        const targetChannel = (await client.channels
+          .fetch(targetChannelId)
+          .catch(() => null)) as TextChannel | null;
+
+        if (!targetChannel || !targetChannel.isTextBased()) {
+          await interaction.reply({ content: '❌ No se pudo encontrar el canal.', ephemeral: true });
+          return;
+        }
+
+        await sendReportPanelToChannel(targetChannel, game);
+        await interaction.reply({
+          content: `✅ Panel de reportes de **${game === 'ACC' ? 'ACC' : 'Assetto Corsa'}** publicado en <#${targetChannel.id}>.`,
+          ephemeral: true,
+        });
+        return;
+      }
+
       // Abrir modal de reporte desde los paneles oficiales o selector
       if (interaction.customId === 'open_report_modal_AC') {
         await interaction.showModal(buildReportModal('AC'));
