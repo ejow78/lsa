@@ -247,13 +247,17 @@ export class MonitorService {
       try {
         const flag = emperorService.formatNationFlag(driver.nation);
         const flagPrefix = flag ? `${flag} ` : '';
+        const sessionInfo =
+          status.sessionType && status.sessionType.toLowerCase() !== 'booking'
+            ? ` (${status.sessionType})`
+            : '';
 
         const joinEmbed = new EmbedBuilder()
           .setTitle('Piloto en pista')
           .setDescription(
             `**Piloto:** ${flagPrefix}**${driver.name}**\n` +
               `**Auto:** *${driver.carModel}*\n` +
-              `**Circuito:** ${status.trackName} (${status.sessionType}) • **${status.connectedDriversCount}/${status.maxClients}** conectados`
+              `**Circuito:** ${status.trackName}${sessionInfo} • **${status.connectedDriversCount}/${status.maxClients}** conectados`
           )
           .setColor(0x2ecc71)
           .setTimestamp(new Date());
@@ -332,11 +336,16 @@ export class MonitorService {
       .map((d) => `**${d.name}** (${d.carModel})`)
       .join(', ');
 
+    const sessionInfo =
+      status.sessionType && status.sessionType.toLowerCase() !== 'booking'
+        ? ` (${status.sessionType})`
+        : '';
+
     const alertEmbed = new EmbedBuilder()
       .setTitle('¡Se armó acción en pista!')
       .setURL(liveTimingWebUrl)
       .setDescription(
-        `Ya hay **${status.connectedDriversCount}/${status.maxClients}** pilotos girando en **${status.trackName}** (${status.sessionType}).\n\n` +
+        `Ya hay **${status.connectedDriversCount}/${status.maxClients}** pilotos girando en **${status.trackName}**${sessionInfo}.\n\n` +
           `**En pista:** ${driversNames || 'Varios pilotos'}`
       )
       .setColor(0x2ecc71)
