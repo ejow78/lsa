@@ -230,11 +230,16 @@ export class MonitorService {
 
     if (newlyJoinedDrivers.length === 0) return;
 
+    console.log(
+      `🏎️ [Monitor] Detectado ingreso de ${newlyJoinedDrivers.length} piloto(s): ${newlyJoinedDrivers.map((d) => `${d.name} (${d.carModel})`).join(', ')}`
+    );
+
     const alertChannel = await this.client.channels
       .fetch(env.ALERT_CHANNEL_ID)
       .catch(() => null);
 
     if (!alertChannel || !alertChannel.isTextBased() || !('send' in alertChannel)) {
+      console.warn(`⚠️ [Monitor] Canal de avisos (${env.ALERT_CHANNEL_ID}) no encontrado o sin permisos de envío.`);
       return;
     }
 
