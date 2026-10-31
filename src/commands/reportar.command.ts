@@ -112,7 +112,7 @@ export const reportarCommand: SlashCommand = {
 
     await interaction.reply({
       content:
-        `🏁 **Colegio de Comisarios Deportivos — LATAM SimRacing Alliance**\n\n` +
+        `🏁 **LATAM SimRacing Alliance • Denuncias de Incidentes**\n\n` +
         `Selecciona el simulador en el que ocurrió el incidente que deseas denunciar:\n` +
         `• También puedes hacer tus reportes directamente en <#${env.acReportChannelId}> (AC) o <#${env.accReportChannelId}> (ACC).`,
       components: [row],

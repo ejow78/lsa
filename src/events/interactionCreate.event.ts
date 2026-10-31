@@ -113,7 +113,7 @@ export function registerInteractionCreateEvent(client: Client): void {
                 `**Momento Exacto / Vuelta:** ${sessionTime}\n\n` +
                 `**Descripción del incidente:**\n${description}`
               )
-              .setFooter({ text: `Colegio de Comisarios LSA • ${gameName}` })
+              .setFooter({ text: `LATAM SimRacing Alliance • ${gameName}` })
               .setTimestamp(new Date());
 
             const buttonsRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -141,7 +141,7 @@ export function registerInteractionCreateEvent(client: Client): void {
         await interaction.reply({
           content:
             `✅ Tu denuncia para **${gameName}** ha sido registrada con el código **\`${report.id}\`**.\n` +
-            `Los comisarios deportivos analizarán el video y los datos a la brevedad.`,
+            `El staff analizará la repetición y los datos a la brevedad.`,
           ephemeral: true,
         });
         return;
@@ -207,7 +207,7 @@ export function registerInteractionCreateEvent(client: Client): void {
                   `**Sesión / Momento:** ${report.sessionTime}\n` +
                   `**Sanción Aplicada:** **${penaltyApplied}**\n` +
                   `**Motivo:** ${penaltyReason}\n\n` +
-                  `*Resolución emitida por el Colegio de Comisarios Deportivos de LSA.*`
+                  `*Resolución emitida por LATAM SimRacing Alliance.*`
                 )
                 .setTimestamp(new Date());
 

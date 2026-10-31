@@ -23,20 +23,20 @@ export async function sendReportPanelToChannel(
   const buttonId = isACC ? 'open_report_modal_ACC' : 'open_report_modal_AC';
 
   const embed = new EmbedBuilder()
-    .setTitle(`Comisariato Deportivo • ${gameFullName}`)
+    .setTitle(`Reportes de Incidentes • ${gameFullName}`)
     .setColor(colorCode)
     .setDescription(
       `Bienvenido al sistema oficial de reportes y denuncias de **LATAM SimRacing Alliance**.\n\n` +
-        `Si estuviste involucrado en una maniobra antideportiva, colisión o incidente que consideres punible, presiona el botón inferior para abrir el formulario oficial de comisariato.\n\n` +
+        `Si estuviste involucrado en una maniobra antideportiva, colisión o incidente que consideres punible, presiona el botón inferior para abrir el formulario oficial.\n\n` +
         `**Datos a completar en el reporte:**\n` +
         `1. **Tu Nombre de Piloto:** Tu nombre en pista.\n` +
         `2. **Piloto o Auto Denunciado:** Nombre del rival o auto/número.\n` +
         `3. **Momento Exacto:** Sesión, número de vuelta o minuto de carrera.\n` +
         `4. **Descripción:** Explica con claridad lo ocurrido.\n\n` +
-        `*Los comisarios evaluarán la telemetría y los registros de repetición del servidor.*`
+        `*El staff evaluará la telemetría y los registros de repetición del servidor.*`
     )
     .setFooter({
-      text: 'LATAM SimRacing Alliance • Colegio de Comisarios Deportivos',
+      text: 'LATAM SimRacing Alliance',
     })
     .setTimestamp(new Date());
 
