@@ -87,46 +87,42 @@ export async function buildServerStatusMessagePayload(
           .join('\n')
       : '*No hay pilotos conectados en este momento.*';
 
-  const fields: { name: string; value: string; inline?: boolean }[] = [
-    {
-      name: 'Circuito y Trazado',
-      value: fullTrackTitle,
-      inline: true,
-    },
-  ];
+  const isBooking =
+    !status.sessionType ||
+    status.sessionType.toLowerCase() === 'booking' ||
+    status.sessionType.toLowerCase() === 'desconocida';
 
-  const showSession =
-    Boolean(status.sessionType) &&
-    status.sessionType.toLowerCase() !== 'booking' &&
-    status.sessionType.toLowerCase() !== 'desconocida';
-
-  if (showSession) {
-    fields.push({
-      name: 'Sesión Actual',
-      value: `**${status.sessionType}** (${status.timeLeftFormatted} restantes)`,
-      inline: true,
-    });
-  }
-
-  fields.push(
-    {
-      name: 'Pilotos en Pista',
-      value: `**${status.connectedDriversCount}/${status.maxClients}**`,
-      inline: true,
-    },
-    {
-      name: `Lista de Pilotos (${status.connectedDriversCount})`,
-      value: driversListText,
-      inline: false,
-    }
-  );
+  const sessionValue = isBooking
+    ? (status.timeLeftFormatted === 'En curso' ? 'En curso' : `${status.timeLeftFormatted} restantes`)
+    : `**${status.sessionType}** (${status.timeLeftFormatted} restantes)`;
 
   const embed = new EmbedBuilder()
     .setTitle(status.serverName)
     .setURL(liveTimingWebUrl)
     .setDescription(`**Estado:** ${statusIndicator}${weatherText}${passwordLine}`)
     .setColor(embedColor)
-    .addFields(fields)
+    .addFields(
+      {
+        name: 'Circuito y Trazado',
+        value: fullTrackTitle,
+        inline: true,
+      },
+      {
+        name: 'Sesión Actual',
+        value: sessionValue,
+        inline: true,
+      },
+      {
+        name: 'Pilotos en Pista',
+        value: `**${status.connectedDriversCount}/${status.maxClients}**`,
+        inline: true,
+      },
+      {
+        name: `Lista de Pilotos (${status.connectedDriversCount})`,
+        value: driversListText,
+        inline: false,
+      }
+    )
     .setTimestamp(status.updatedAt)
     .setFooter({ text: 'LATAM SimRacing Alliance • Actualización en vivo' });
 
