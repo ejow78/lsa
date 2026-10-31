@@ -31,10 +31,6 @@ export function buildRulesEmbed(guildName: string = 'LATAM SimRacing Alliance'):
       `### 3️⃣ Canales, Contenido y Roles\n` +
       `• **Selección de juegos:** Pásate por <#${env.rolesChannelId}> para marcar los títulos que juegas (AC, ACC, AC Evo, Rally, F1, WRC) y saber dónde te especializas.\n` +
       `• **Foros de Mods y Contenido:** Si quieres ingresar a los servidores de Assetto Corsa, tienes que descargar los contenidos que están en los canales de mods (<#1529974353595334796>, <#1562226934803337216>, <#1532932994141130892>).\n\n` +
-      `### 4️⃣ Formato de Servidores y Quedadas\n` +
-      `• **Organización libre:** Los pilotos son libres de coordinar partidas, salas privadas o rodadas casuales en los canales de chat de cada juego respectivo.\n` +
-      `• **Avisos de partidas:** Si vas a abrir un servidor o crear una sala multijugador, puedes coordinarlo en el canal del juego y etiquetar a los interesados.\n` +
-      `• **Respeto de horarios:** Si se pacta una hora para una tanda o carrera casual, procura estar a tiempo en los canales de voz correspondientes para no hacer esperar al resto de la parrilla.\n\n` +
       `───────────────────────────────\n` +
       `### ✅ Aceptación del Reglamento y Acceso\n` +
       `Para confirmar que has leído y aceptado este reglamento, presiona el botón verde **Aceptar Reglamento** de abajo (o reacciona con el emoji ✅).\n\n` +

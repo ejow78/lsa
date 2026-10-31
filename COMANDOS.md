@@ -13,7 +13,7 @@ Publica el panel oficial con el reglamento y código de conducta de la comunidad
 * **Opciones:**
   * `canal` *(opcional)*: Canal de Discord donde enviar el reglamento (por defecto, el canal configurado `<#1529959238271635496>` o el canal actual).
 * **Comportamiento:**
-  * Envía el Embed formateado con las 4 secciones del reglamento (Convivencia, Fair Play en Pista, Canales/Mods, Formato de Servidores/Quedadas).
+  * Envía el Embed formateado con las secciones del reglamento (Convivencia y Respeto, Fair Play en Pista, y Canales/Mods de Assetto Corsa).
   * Incluye el botón interactivo verde `✅ Aceptar Reglamento` y agrega la reacción `✅` al mensaje.
   * Al pulsar el botón o reaccionar, asigna al usuario el rol **Piloto** (`1529968757131186308`) y le envía un mensaje efímero de confirmación y bienvenida a la pista.
   * Si un usuario retira su reacción `✅`, el rol se le retira automáticamente.
