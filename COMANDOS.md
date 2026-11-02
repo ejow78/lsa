@@ -1,6 +1,6 @@
 # Manual Oficial de Comandos — LATAM SimRacing Alliance Bot
 
-Guía de referencia y uso para los 17 comandos Slash disponibles en el bot de Discord de **LATAM SimRacing Alliance (LSA)**.
+Guía de referencia y uso para los 18 comandos Slash disponibles en el bot de Discord de **LATAM SimRacing Alliance (LSA)**.
 
 ---
 
@@ -82,6 +82,33 @@ Comando directo y rápido para hacer hablar al bot con texto plano sin formato d
   ```text
   /decir mensaje: En 15 minutos comienza la sesión de clasificación canal:#anuncios
   ```
+
+---
+
+### `/post`
+Publica y administra contenido en los canales de foro de mods (vista de galería con portada en GIF y enlaces de descarga). Permite además editar posts creados por el bot en caso de actualizar enlaces, títulos o portadas.
+
+* **Permisos requeridos:** Administrador o Moderador.
+* **Subcomandos:**
+  1. **`/post publicar`**:
+     * `categoria` *(obligatorio)*: Canal de destino:
+       * `🚗 Mods de Autos` (`<#1562226934803337216>`)
+       * `🏁 Mods de Circuitos` (`<#1529974353595334796>`)
+       * `🛠️ Utilidades (Pure, PPFilters, etc.)` (`<#1532932994141130892>`)
+     * `titulo` *(obligatorio)*: Título del mod (ej. `Porsche Cup`, `DTM 2018 | Versión 1.1`).
+     * `link` *(obligatorio)*: Enlace de descarga (Google Drive, Mega, MediaFire, etc.).
+     * `gif` *(opcional)*: Archivo adjunto (GIF o imagen) para la portada de la tarjeta en la galería.
+     * `gif_url` *(opcional)*: URL directa de un GIF o imagen de portada si no se sube como archivo.
+     * `descripcion` *(opcional)*: Notas adicionales de instalación o detalles.
+     * `etiqueta` *(opcional)*: Nombre de la etiqueta del foro a aplicar.
+     * *Comportamiento adicional:* Agrega automáticamente la reacción ❤️ al post recién creado.
+  2. **`/post editar`**:
+     * `post` *(obligatorio)*: ID o enlace directo del post/hilo de Discord a editar.
+     * `titulo` *(opcional)*: Nuevo título del post.
+     * `link` *(opcional)*: Nuevo enlace de descarga.
+     * `gif` *(opcional)*: Nuevo archivo GIF o imagen de portada.
+     * `gif_url` *(opcional)*: Nueva URL directa de GIF o imagen.
+     * `descripcion` *(opcional)*: Nuevas notas o descripción.
 
 ---
 

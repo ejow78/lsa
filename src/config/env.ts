@@ -38,6 +38,11 @@ const envSchema = z.object({
   AC_SANCTIONS_CHANNEL_ID: z.string().default('1566145766450401300'),
   ACC_SANCTIONS_CHANNEL_ID: z.string().default('1566145732380196974'),
 
+  // Canales de Foros / Mods y Contenido
+  MODS_CARS_CHANNEL_ID: z.string().default('1562226934803337216'),
+  MODS_TRACKS_CHANNEL_ID: z.string().default('1529974353595334796'),
+  MODS_UTILS_CHANNEL_ID: z.string().default('1532932994141130892'),
+
   // Bienvenida, Reglas y Rol de Piloto
   WELCOME_CHANNEL_ID: z.string().default('1566120096886296708'),
   RULES_CHANNEL_ID: z.string().default('1529959238271635496'),
@@ -131,5 +136,14 @@ export const env = {
   },
   get pilotRoleId(): string {
     return parsedEnv.data.PILOT_ROLE_ID;
+  },
+  get modsCarsChannelId(): string {
+    return parsedEnv.data.MODS_CARS_CHANNEL_ID;
+  },
+  get modsTracksChannelId(): string {
+    return parsedEnv.data.MODS_TRACKS_CHANNEL_ID;
+  },
+  get modsUtilsChannelId(): string {
+    return parsedEnv.data.MODS_UTILS_CHANNEL_ID;
   },
 };
