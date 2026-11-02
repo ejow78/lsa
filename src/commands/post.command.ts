@@ -1,5 +1,4 @@
 import {
-  AttachmentBuilder,
   ChannelType,
   EmbedBuilder,
   ForumChannel,
@@ -205,16 +204,20 @@ async function handlePublicar(interaction: ChatInputCommandInteraction) {
     appliedTags.push(forumChannel.availableTags[0].id);
   }
 
-  // Armar archivos adjuntos (el primer archivo de imagen/gif es tomado por Discord como portada de la tarjeta)
-  const files: (AttachmentBuilder | { attachment: string; name?: string })[] = [];
-  if (gifAttachment) {
-    files.push({ attachment: gifAttachment.url, name: gifAttachment.name });
-  } else if (gifUrl) {
-    files.push(new AttachmentBuilder(gifUrl, { name: 'portada.gif' }));
+  // Contenido del mensaje principal
+  let messageContent = link;
+  if (gifUrl) {
+    messageContent += `\n${gifUrl}`;
+  }
+  if (descripcion) {
+    messageContent += `\n\n${descripcion}`;
   }
 
-  // Contenido del mensaje principal
-  const messageContent = descripcion ? `${link}\n\n${descripcion}` : link;
+  // Armar archivos adjuntos solo si se subió un archivo físico mediante la opción 'gif'
+  const files: { attachment: string; name: string }[] = [];
+  if (gifAttachment) {
+    files.push({ attachment: gifAttachment.url, name: gifAttachment.name });
+  }
 
   try {
     const thread = await forumChannel.threads.create({
@@ -318,30 +321,60 @@ async function handleEditar(interaction: ChatInputCommandInteraction) {
   }
 
   // 3. Modificar contenido y/o archivo
-  let updatedContent = starterMessage.content;
-  if (nuevoLink || nuevaDescripcion !== undefined) {
-    const parts = starterMessage.content.split('\n\n');
-    const currentLink = parts[0] || '';
-    const currentDesc = parts.slice(1).join('\n\n');
+  const lines = starterMessage.content
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
 
-    const finalLink = nuevoLink || currentLink;
-    const finalDesc = nuevaDescripcion !== undefined ? nuevaDescripcion : currentDesc;
+  let existingDownloadLink = lines[0] || '';
+  let existingGifUrl = '';
+  const existingDescLines: string[] = [];
 
-    updatedContent = finalDesc ? `${finalLink}\n\n${finalDesc}` : finalLink;
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (
+      !existingGifUrl &&
+      (line.includes('tenor.com') ||
+        line.includes('giphy.com') ||
+        /\.(gif|png|jpe?g|webp)(\?.*)?$/i.test(line))
+    ) {
+      existingGifUrl = line;
+    } else {
+      existingDescLines.push(line);
+    }
   }
 
-  const newFiles: (AttachmentBuilder | { attachment: string; name?: string })[] = [];
+  const finalLink = nuevoLink ?? existingDownloadLink;
+  const finalGifUrl = nuevoGifUrl !== undefined ? nuevoGifUrl : (nuevoGif ? '' : existingGifUrl);
+  const finalDesc =
+    nuevaDescripcion !== undefined ? nuevaDescripcion : existingDescLines.join('\n\n');
+
+  let updatedContent = finalLink;
+  if (finalGifUrl) {
+    updatedContent += `\n${finalGifUrl}`;
+  }
+  if (finalDesc) {
+    updatedContent += `\n\n${finalDesc}`;
+  }
+
+  const newFiles: { attachment: string; name: string }[] = [];
   if (nuevoGif) {
     newFiles.push({ attachment: nuevoGif.url, name: nuevoGif.name });
-  } else if (nuevoGifUrl) {
-    newFiles.push(new AttachmentBuilder(nuevoGifUrl, { name: 'portada.gif' }));
   }
 
   try {
     if (newFiles.length > 0) {
+      // Si sube un nuevo archivo adjunto físico, reemplaza los archivos previos
       await starterMessage.edit({
         content: updatedContent,
         files: newFiles,
+        attachments: [],
+      });
+    } else if (nuevoGifUrl !== undefined) {
+      // Si especifica una URL de GIF (ej. Tenor), limpiamos adjuntos viejos si había archivo corrupto
+      await starterMessage.edit({
+        content: updatedContent,
+        attachments: [],
       });
     } else if (updatedContent !== starterMessage.content) {
       await starterMessage.edit({
