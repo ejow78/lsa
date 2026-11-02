@@ -1,4 +1,5 @@
 import {
+  AttachmentBuilder,
   ChannelType,
   EmbedBuilder,
   ForumChannel,
@@ -204,20 +205,20 @@ async function handlePublicar(interaction: ChatInputCommandInteraction) {
     appliedTags.push(forumChannel.availableTags[0].id);
   }
 
-  // Contenido del mensaje principal
-  let messageContent = link;
-  if (gifUrl) {
-    messageContent += `\n${gifUrl}`;
-  }
-  if (descripcion) {
-    messageContent += `\n\n${descripcion}`;
+  // Contenido del mensaje principal (SOLO link y descripción opcional, sin URL de gif visible)
+  const messageContent = descripcion ? `${link}\n\n${descripcion}` : link;
+
+  let attachmentFile: AttachmentBuilder | null = null;
+  try {
+    attachmentFile = await resolveImageAttachment(gifAttachment, gifUrl);
+  } catch (err: any) {
+    await interaction.editReply({
+      content: `❌ No se pudo procesar la imagen/GIF de portada: \`${err?.message || err}\``,
+    });
+    return;
   }
 
-  // Armar archivos adjuntos solo si se subió un archivo físico mediante la opción 'gif'
-  const files: { attachment: string; name: string }[] = [];
-  if (gifAttachment) {
-    files.push({ attachment: gifAttachment.url, name: gifAttachment.name });
-  }
+  const files = attachmentFile ? [attachmentFile] : [];
 
   try {
     const thread = await forumChannel.threads.create({
@@ -326,54 +327,52 @@ async function handleEditar(interaction: ChatInputCommandInteraction) {
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
-  let existingDownloadLink = lines[0] || '';
-  let existingGifUrl = '';
+  let existingDownloadLink = '';
   const existingDescLines: string[] = [];
 
-  for (let i = 1; i < lines.length; i++) {
+  for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    // Ignorar si era un enlace a tenor, giphy, discord cdn o nombre de archivo de gif previo pegado en texto
     if (
-      !existingGifUrl &&
-      (line.includes('tenor.com') ||
-        line.includes('giphy.com') ||
-        /\.(gif|png|jpe?g|webp)(\?.*)?$/i.test(line))
+      line.includes('tenor.com') ||
+      line.includes('giphy.com') ||
+      line.includes('cdn.discordapp.com') ||
+      line.startsWith('📎') ||
+      /\.(gif|png|jpe?g|webp)(\?.*)?$/i.test(line)
     ) {
-      existingGifUrl = line;
+      continue;
+    }
+    if (!existingDownloadLink && (line.startsWith('http://') || line.startsWith('https://'))) {
+      existingDownloadLink = line;
     } else {
       existingDescLines.push(line);
     }
   }
 
   const finalLink = nuevoLink ?? existingDownloadLink;
-  const finalGifUrl = nuevoGifUrl !== undefined ? nuevoGifUrl : (nuevoGif ? '' : existingGifUrl);
   const finalDesc =
     nuevaDescripcion !== undefined ? nuevaDescripcion : existingDescLines.join('\n\n');
 
-  let updatedContent = finalLink;
-  if (finalGifUrl) {
-    updatedContent += `\n${finalGifUrl}`;
-  }
-  if (finalDesc) {
-    updatedContent += `\n\n${finalDesc}`;
-  }
+  const updatedContent = finalDesc ? `${finalLink}\n\n${finalDesc}` : finalLink;
 
-  const newFiles: { attachment: string; name: string }[] = [];
-  if (nuevoGif) {
-    newFiles.push({ attachment: nuevoGif.url, name: nuevoGif.name });
+  let newAttachmentFile: AttachmentBuilder | null = null;
+  if (nuevoGif || nuevoGifUrl) {
+    try {
+      newAttachmentFile = await resolveImageAttachment(nuevoGif, nuevoGifUrl);
+    } catch (err: any) {
+      await interaction.editReply({
+        content: `❌ Error al procesar el nuevo GIF/imagen: \`${err?.message || err}\``,
+      });
+      return;
+    }
   }
 
   try {
-    if (newFiles.length > 0) {
-      // Si sube un nuevo archivo adjunto físico, reemplaza los archivos previos
+    if (newAttachmentFile) {
+      // Reemplaza el archivo adjunto previo por el nuevo binario descargado
       await starterMessage.edit({
         content: updatedContent,
-        files: newFiles,
-        attachments: [],
-      });
-    } else if (nuevoGifUrl !== undefined) {
-      // Si especifica una URL de GIF (ej. Tenor), limpiamos adjuntos viejos si había archivo corrupto
-      await starterMessage.edit({
-        content: updatedContent,
+        files: [newAttachmentFile],
         attachments: [],
       });
     } else if (updatedContent !== starterMessage.content) {
@@ -404,4 +403,61 @@ async function handleEditar(interaction: ChatInputCommandInteraction) {
       content: `❌ Ocurrió un error al editar el mensaje del post: \`${error?.message || 'Error desconocido'}\``,
     });
   }
+}
+
+/**
+ * Descarga y resuelve una imagen o GIF desde un archivo adjunto o URL (incluyendo soporte para páginas de Tenor)
+ * para adjuntarla como archivo binario real de Discord (Multipart Form Data).
+ */
+async function resolveImageAttachment(
+  attachment?: { url: string; name?: string } | null,
+  urlStr?: string | null
+): Promise<AttachmentBuilder | null> {
+  const targetUrl = attachment?.url || urlStr?.trim();
+  if (!targetUrl) return null;
+
+  let downloadUrl = targetUrl;
+
+  // Si es un enlace a la página de visualización de Tenor (ej. https://tenor.com/view/...)
+  if (targetUrl.includes('tenor.com/view/')) {
+    try {
+      const pageRes = await fetch(targetUrl);
+      if (pageRes.ok) {
+        const pageText = await pageRes.text();
+        const match = pageText.match(/https:\/\/media\.tenor\.com\/[^"]+\.gif/);
+        if (match) {
+          downloadUrl = match[0];
+        }
+      }
+    } catch (e) {
+      console.warn('Error resolviendo enlace de Tenor:', e);
+    }
+  }
+
+  const res = await fetch(downloadUrl);
+  if (!res.ok) {
+    throw new Error(`No se pudo descargar la imagen (${res.status} ${res.statusText})`);
+  }
+
+  const arrayBuffer = await res.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  let name = attachment?.name;
+  if (!name) {
+    try {
+      const parsed = new URL(downloadUrl);
+      const filePart = parsed.pathname.split('/').pop();
+      if (filePart && filePart.includes('.')) {
+        name = filePart;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!name || !name.includes('.')) {
+    name = 'portada.gif';
+  }
+
+  return new AttachmentBuilder(buffer, { name });
 }
