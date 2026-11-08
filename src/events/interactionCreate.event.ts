@@ -234,8 +234,7 @@ export function registerInteractionCreateEvent(client: Client): void {
                   `Hola **${report.reporterDriverName || reporterUser.username}**, los comisarios deportivos han resuelto tu denuncia:\n\n` +
                   `• **Piloto denunciado:** \`${report.accused}\`\n` +
                   `• **Sanción aplicada:** **${penaltyApplied}**\n` +
-                  `• **Motivo oficial:** ${penaltyReason}\n\n` +
-                  `Puedes consultar el registro público en <#${targetSanctionsChannelId}>.`
+                  `• **Motivo oficial:** ${penaltyReason}`
                 )
                 .setFooter({ text: 'LATAM SimRacing Alliance' })
                 .setTimestamp(new Date());
