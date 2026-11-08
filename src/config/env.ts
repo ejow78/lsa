@@ -10,6 +10,7 @@ const envSchema = z.object({
   EMPEROR_IP_OR_DOMAIN: z.string().min(1).default('216.238.100.32'),
   EMPEROR_HTTP_PORT: z.coerce.number().int().positive().default(9649),
   AC_JOIN_HTTP_PORT: z.coerce.number().int().positive().optional(),
+  AC_JOIN_URL: z.string().url().optional(),
   AC_SERVER_PASSWORD: z.string().optional().default('LaTaM2026'),
   EMPEROR_WEB_URL: z
     .string()

@@ -280,11 +280,26 @@ export class EmperorService {
   private mockCycleIndex = 0;
 
   public getContentManagerProtocolLink(): string {
+    if (env.AC_JOIN_URL) {
+      try {
+        const parsed = new URL(env.AC_JOIN_URL);
+        if (parsed.pathname.startsWith('/s/q:')) {
+          const path = parsed.pathname.slice('/s/q:'.length);
+          return `acmanager://${path}${parsed.search}`;
+        }
+        return `acmanager://race/online/join${parsed.search}`;
+      } catch {
+        return env.AC_JOIN_URL.replace(/^https?:\/\/[^/]+\/s\/q:/, 'acmanager://');
+      }
+    }
     return `acmanager://race/online/join?ip=${env.EMPEROR_IP_OR_DOMAIN}&httpPort=${env.joinHttpPort}`;
   }
 
   public getContentManagerJoinButtonUrl(): string {
-    return `https://acstuff.ru/s/q:race/online/join?httpPort=${env.joinHttpPort}&ip=${env.EMPEROR_IP_OR_DOMAIN}`;
+    if (env.AC_JOIN_URL) {
+      return env.AC_JOIN_URL;
+    }
+    return `https://acstuff.club/s/q:race/online/join?httpPort=${env.joinHttpPort}&ip=${env.EMPEROR_IP_OR_DOMAIN}`;
   }
 
   public getLiveTimingWebUrl(): string {
