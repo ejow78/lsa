@@ -304,7 +304,7 @@ export class EmperorService {
   }
 
   public getLiveTimingWebUrl(): string {
-    return 'https://live.latamsimracing.com/';
+    return env.LIVE_TIMING_WEB_URL;
   }
 
   public getChampionshipsWebUrl(): string {
