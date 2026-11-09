@@ -328,7 +328,7 @@ export class LiveTimingService {
       if (d.hasCompletedSession) hasCheckered = true;
       if (d.blueFlag) hasBlue = true;
       // Driver stopped or moving very slowly (< 25 km/h) on track outside pits
-      if (!d.isInPits && d.hasPosition && d.speedKmh < 25 && (d.worldX !== 0 || d.worldZ !== 0)) {
+      if (!d.isInPits && d.hasPosition && d.speedKmh > 0 && d.speedKmh < 25 && (d.worldX !== 0 || d.worldZ !== 0)) {
         d.yellowFlag = true;
         yellowSectorsSet.add(d.currentSector || 1);
       } else {
@@ -702,7 +702,7 @@ export class LiveTimingService {
           carName: carInfo.CarName || this.cleanCarModel(carModel),
           tyres: carInfo.Tyres || '-',
           position: Number(d.Position && d.Position !== 255 ? d.Position : idx + 1),
-          isInPits: Boolean(d.IsInPits),
+          isInPits: d.IsInPits !== undefined ? Boolean(d.IsInPits) : true,
           ping: Number(d.Ping ?? 0),
           speedKmh: 0,
           topSpeedKmh: Math.round(Number(carStats.TopSpeedBestLap ?? 0)),
@@ -1039,7 +1039,11 @@ export class LiveTimingService {
         driver.deltaToBestFormatted = this.formatDeltaMs(driver.deltaToBestMs);
         driver.deltaToSelfFormatted = this.formatDeltaMs(driver.deltaToSelfMs);
 
-        driver.isInPits = Boolean(update.IsInPits ?? driver.isInPits);
+        if (update.IsInPits !== undefined) {
+          driver.isInPits = Boolean(update.IsInPits);
+        } else if (speedKmh > 65) {
+          driver.isInPits = false;
+        }
         driver.ping = Number(update.Ping ?? driver.ping);
         driver.ballast = Number(update.Ballast ?? driver.ballast);
         driver.restrictor = Number(update.Restrictor ?? driver.restrictor);

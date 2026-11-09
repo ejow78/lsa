@@ -127,6 +127,15 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
       box-shadow: 0 0 0 1px rgba(160, 210, 255, .6) inset, 0 8px 40px rgba(35, 140, 230, .55);
       transform: translateY(-1px);
     }
+    .pill.ghost {
+      background: transparent;
+      box-shadow: 0 0 0 1px var(--wire) inset;
+      color: var(--ink);
+    }
+    .pill.ghost:hover {
+      box-shadow: 0 0 0 1px var(--cyan) inset;
+      color: #fff;
+    }
 
     /* Etiqueta Kick con línea delante */
     .kick {
@@ -145,21 +154,18 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
       background: var(--cyan);
     }
 
-    /* Cabecera y Menús */
-    .site-nav-menu a, .site-nav-menu button, .site-nav-menu span {
+    /* Cabecera y Menús (SOLO a los enlaces directos de primer nivel, sin afectar spans internos) */
+    .site-nav-menu > a {
       font: 600 13.5px var(--display);
       letter-spacing: .08em;
       text-transform: uppercase;
       padding: 10px 14px;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
       transition: color 0.15s;
-    }
-    .site-nav-menu a {
       color: var(--mute);
     }
-    .site-nav-menu a:hover {
+    .site-nav-menu > a:hover {
       color: #fff;
     }
     .site-nav-menu .cur-page {
@@ -339,24 +345,24 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
         </a>
       </div>
 
-      <!-- NAVBAR LIMPIA: ASSETTO CORSA (ACTIVO) Y ASSETTO CORSA COMPETIZIONE (PRÓXIMAMENTE) -->
-      <nav class="hidden md:flex items-center gap-2 site-nav-menu">
-        <!-- Live Timing Assetto Corsa (Activo con punto rojo pulsante) -->
-        <a href="/" class="cur-page" aria-current="page">
-          <span class="relative flex h-2 w-2 mr-1.5">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+      <!-- NAVBAR LIMPIA: ASSETTO CORSA (ACTIVO) Y ASSETTO CORSA COMPETIZIONE (ACCESIBLE) -->
+      <nav class="hidden md:flex items-center gap-3 site-nav-menu">
+        <!-- Live Timing Assetto Corsa (Activo con punto rojo pulsante bien posicionado) -->
+        <a href="/" class="cur-page flex items-center gap-2.5" aria-current="page">
+          <span class="relative flex h-2.5 w-2.5 shrink-0 items-center justify-center">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-lsa-red"></span>
           </span>
-          Assetto Corsa
+          <span class="font-display font-bold uppercase tracking-wider text-[13.5px]">Assetto Corsa</span>
         </a>
 
-        <!-- Assetto Corsa Competizione (Próximamente) -->
-        <span class="inline-flex items-center gap-2 text-lsa-mute font-display uppercase tracking-wider text-[13px] opacity-60 cursor-default select-none">
-          Assetto Corsa Competizione
-          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-lsa-gold/15 text-lsa-gold border border-lsa-gold/30">
+        <!-- Assetto Corsa Competizione (Lleva a la página de aviso /acc) -->
+        <a href="/acc" class="flex items-center gap-2.5 text-lsa-mute hover:text-white transition-colors">
+          <span class="font-display font-semibold uppercase tracking-wider text-[13.5px]">Assetto Corsa Competizione</span>
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-lsa-gold/15 text-lsa-gold border border-lsa-gold/30 uppercase tracking-wide">
             Próximamente
           </span>
-        </span>
+        </a>
       </nav>
 
       <!-- ACCIONES: BOTÓN 1-CLICK (SOLO DESKTOP) Y REDES SOCIALES (EN MÓVIL Y DESKTOP) -->
@@ -1140,6 +1146,308 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
         connectSse();
       });
 
+  </script>
+</body>
+</html>
+`;
+
+export const ACC_COMING_SOON_HTML = `<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assetto Corsa Competizione — LATAM SimRacing Alliance</title>
+  <link rel="icon" type="image/png" href="/logo.png" />
+
+  <!-- Google Fonts: Chakra Petch (Display), Saira (Body), JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;1,600;1,700&family=JetBrains+Mono:wght@400;500;600;700&family=Saira:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Chakra Petch"', '"Arial Narrow"', 'sans-serif'],
+            sans: ['Saira', '"Segoe UI"', 'Roboto', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            lsa: {
+              night: '#060A13',
+              deck: '#0C1322',
+              deck2: '#111A2D',
+              wire: '#1D2940',
+              ink: '#E8EEF7',
+              mute: '#8D9AB0',
+              cyan: '#23B6E0',
+              gold: '#F2B92B',
+              red: '#E3261B',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    :root {
+      --night: #060A13;
+      --deck: #0C1322;
+      --deck2: #111A2D;
+      --wire: #1D2940;
+      --ink: #E8EEF7;
+      --mute: #8D9AB0;
+      --cyan: #23B6E0;
+      --gold: #F2B92B;
+      --red: #E3261B;
+      --display: "Chakra Petch", "Arial Narrow", Arial, sans-serif;
+      --body: "Saira", "Segoe UI", Roboto, Arial, sans-serif;
+      --cut: 16px;
+    }
+
+    body {
+      background-color: var(--night);
+      background-image:
+        radial-gradient(60% 70% at 78% 30%, rgba(35, 182, 224, 0.12), transparent 60%),
+        radial-gradient(50% 60% at 15% 80%, rgba(227, 38, 27, 0.10), transparent 60%),
+        linear-gradient(to bottom, #060A13, #090E1A);
+      color: var(--ink);
+      font-family: var(--body);
+      overflow-x: clip;
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .tri {
+      height: 4px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      width: 100%;
+    }
+    .tri i:nth-child(1) { background: var(--cyan); }
+    .tri i:nth-child(2) { background: var(--gold); }
+    .tri i:nth-child(3) { background: var(--red); }
+
+    .cut {
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%);
+    }
+
+    .tri-word {
+      background: linear-gradient(90deg, #23B6E0 0 33%, #F2B92B 33% 66%, #E3261B 66%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-style: italic;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      font: 700 13px var(--display);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      padding: 11px 22px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #2a8fd8, #155fb0);
+      color: #fff;
+      box-shadow: 0 0 0 1px rgba(120, 190, 255, .35) inset, 0 8px 30px rgba(35, 140, 230, .35);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .pill:hover {
+      box-shadow: 0 0 0 1px rgba(160, 210, 255, .6) inset, 0 8px 40px rgba(35, 140, 230, .55);
+      transform: translateY(-1px);
+    }
+    .pill.ghost {
+      background: transparent;
+      box-shadow: 0 0 0 1px var(--wire) inset;
+      color: var(--ink);
+    }
+    .pill.ghost:hover {
+      box-shadow: 0 0 0 1px var(--cyan) inset;
+      color: #fff;
+    }
+
+    .kick {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font: 600 12px var(--display);
+      letter-spacing: .24em;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+    .kick::before {
+      content: "";
+      width: 28px;
+      height: 1px;
+      background: var(--cyan);
+    }
+
+    .site-nav-menu > a {
+      font: 600 13.5px var(--display);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      display: inline-flex;
+      align-items: center;
+      transition: color 0.15s;
+      color: var(--mute);
+    }
+    .site-nav-menu > a:hover {
+      color: #fff;
+    }
+    .site-nav-menu .cur-page {
+      color: #fff !important;
+      box-shadow: inset 0 -2px 0 var(--gold) !important;
+    }
+
+    .soc-btn {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--wire);
+      border-radius: 999px;
+      color: var(--mute);
+      transition: all 0.2s;
+    }
+    .soc-btn:hover {
+      color: #fff;
+      border-color: var(--cyan);
+      box-shadow: 0 0 16px rgba(35, 182, 224, 0.35);
+    }
+
+    .lsa-panel2 {
+      background: var(--deck2);
+      border: 1px solid var(--wire);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-lsa-cyan selection:text-slate-950">
+
+  <div>
+    <!-- FRANJA TRICOLOR SUPERIOR (LSA) -->
+    <div class="tri"><i></i><i></i><i></i></div>
+
+    <!-- CABECERA PRINCIPAL -->
+    <header class="sticky top-0 z-40 bg-[#060A13]/95 backdrop-blur-md border-b border-lsa-wire shadow-2xl">
+      <div class="max-w-[1720px] mx-auto px-4 sm:px-6 h-[66px] flex items-center justify-between gap-4">
+        
+        <!-- LOGO LSA HORIZONTAL CON MIX-BLEND-MODE -->
+        <div class="flex items-center gap-4">
+          <a href="https://latamsimracing.com/" class="block">
+            <img
+              src="https://latamsimracing.com/wp-content/uploads/2026/10/lsa-logo-horizontal.jpg"
+              alt="Latam Simracing Alliance"
+              class="h-[44px] w-auto mix-blend-lighten object-contain"
+              onerror="this.src='/logo.png'"
+            />
+          </a>
+        </div>
+
+        <!-- NAVBAR -->
+        <nav class="hidden md:flex items-center gap-3 site-nav-menu">
+          <a href="/" class="flex items-center gap-2 text-lsa-mute hover:text-white transition-colors">
+            <span class="font-display font-semibold uppercase tracking-wider text-[13.5px]">Assetto Corsa</span>
+          </a>
+
+          <a href="/acc" class="cur-page flex items-center gap-2" aria-current="page">
+            <span class="font-display font-bold uppercase tracking-wider text-[13.5px]">Assetto Corsa Competizione</span>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-lsa-gold/15 text-lsa-gold border border-lsa-gold/30 uppercase tracking-wide">
+              Próximamente
+            </span>
+          </a>
+        </nav>
+
+        <!-- REDES SOCIALES -->
+        <div class="flex items-center gap-2">
+          <a href="https://discord.gg/V9hq2EBSA" target="_blank" rel="noopener" class="soc-btn" title="Discord Oficial LSA">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+          </a>
+          <a href="https://www.instagram.com/latam_simracing_alliance/" target="_blank" rel="noopener" class="soc-btn" title="Instagram Oficial LSA">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- BANNER EN DESARROLLO -->
+    <main class="max-w-[1200px] mx-auto px-4 sm:px-6 py-16 sm:py-24">
+      <div class="lsa-panel2 cut p-8 sm:p-14 text-center max-w-[800px] mx-auto shadow-2xl relative overflow-hidden">
+        <div class="absolute -right-16 -top-16 w-56 h-56 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-16 -bottom-16 w-56 h-56 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 space-y-5">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-display italic font-bold uppercase tracking-wider bg-lsa-gold/15 text-lsa-gold border border-lsa-gold/30">
+            <span>MODALIDAD EN DESARROLLO</span>
+          </div>
+
+          <h1 class="font-display italic font-bold text-3xl sm:text-5xl text-white uppercase tracking-wide">
+            ASSETTO CORSA <span class="tri-word">COMPETIZIONE</span>
+          </h1>
+
+          <p class="text-lsa-ink/90 text-base sm:text-lg max-w-[560px] mx-auto font-sans leading-relaxed">
+            Estamos trabajando en el módulo de telemetría y Live Timing oficial para nuestros campeonatos de <strong>Assetto Corsa Competizione</strong>.
+          </p>
+
+          <p class="text-lsa-mute text-sm max-w-[480px] mx-auto">
+            ¡Próximamente habrán novedades sobre tablas de posiciones en vivo, incidentes y telemetría de carrera!
+          </p>
+
+          <div class="pt-6 flex flex-wrap items-center justify-center gap-4">
+            <a href="/" class="pill">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i>
+              <span>Volver a Assetto Corsa</span>
+            </a>
+            <a href="https://discord.gg/V9hq2EBSA" target="_blank" rel="noopener" class="pill ghost">
+              <i data-lucide="message-square" class="w-4 h-4 text-[#5865F2]"></i>
+              <span>Enterarte en Discord</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div>
+    <!-- FRANJA TRICOLOR INFERIOR -->
+    <div class="tri"><i></i><i></i><i></i></div>
+
+    <!-- PIE DE PÁGINA OFICIAL (.lsfoot) -->
+    <footer class="bg-[#060A13] border-t border-lsa-wire py-8 text-lsa-mute text-xs">
+      <div class="max-w-[1720px] mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <img
+            src="https://latamsimracing.com/wp-content/uploads/2026/10/lsa-logo-horizontal.jpg"
+            alt="LSA"
+            class="h-[34px] w-auto mix-blend-lighten object-contain"
+            onerror="this.src='/logo.png'"
+          />
+          <span>© 2026 LATAM SimRacing Alliance</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-5 font-display uppercase tracking-wider text-[12px]">
+          <a href="https://latamsimracing.com/" target="_blank" rel="noopener" class="hover:text-white transition-colors">Web Oficial</a>
+          <a href="https://discord.gg/V9hq2EBSA" target="_blank" rel="noopener" class="hover:text-white transition-colors">Discord</a>
+          <a href="https://www.instagram.com/latam_simracing_alliance/" target="_blank" rel="noopener" class="hover:text-white transition-colors">Instagram</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    if (window.lucide) lucide.createIcons();
   </script>
 </body>
 </html>

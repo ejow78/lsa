@@ -2,17 +2,16 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Client } from 'discord.js';
 import { env } from '../config/env.js';
 import { emperorService } from '../services/emperor.service.js';
 import { liveTimingService } from '../services/livetiming.service.js';
 import { tablesService, type CustomTable } from '../services/tables.service.js';
-import { DASHBOARD_HTML } from './dashboard.html.js';
+import { DASHBOARD_HTML, ACC_COMING_SOON_HTML } from './dashboard.html.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export function startWebServer(discordClient: Client | null = null): http.Server {
+export function startWebServer(discordClient: any = null): http.Server {
   liveTimingService.start();
 
   const server = http.createServer(async (req, res) => {
@@ -53,17 +52,24 @@ export function startWebServer(discordClient: Client | null = null): http.Server
       }
 
       // 1. Página Principal del Portal Web
-      if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
+      if ((req.method === 'GET' || req.method === 'HEAD') && (pathname === '/' || pathname === '/index.html')) {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(DASHBOARD_HTML);
+        res.end(req.method === 'HEAD' ? '' : DASHBOARD_HTML);
+        return;
+      }
+
+      // 1b. Página Proximamente Assetto Corsa Competizione
+      if ((req.method === 'GET' || req.method === 'HEAD') && (pathname === '/acc' || pathname === '/competizione' || pathname === '/acc/')) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(req.method === 'HEAD' ? '' : ACC_COMING_SOON_HTML);
         return;
       }
 
       // 2. Estado y Mapa en Tiempo Real (snapshot HTTP)
-      if (req.method === 'GET' && pathname === '/api/live') {
+      if ((req.method === 'GET' || req.method === 'HEAD') && pathname === '/api/live') {
         const state = liveTimingService.getState();
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify(state));
+        res.end(req.method === 'HEAD' ? '' : JSON.stringify(state));
         return;
       }
 
