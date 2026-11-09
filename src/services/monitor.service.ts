@@ -26,7 +26,6 @@ interface PersistedBotState {
   statusMessageId?: string;
   lastResultFile?: string;
   connectedDrivers?: Record<string, string>;
-  lastTrackId?: string;
 }
 
 const STATE_DIR = path.resolve(process.cwd(), 'data');
@@ -40,7 +39,6 @@ export class MonitorService {
   private pollingTimer: NodeJS.Timeout | null = null;
   private statusMessageId: string | null = null;
   private lastResultFile: string | null = null;
-  private lastTrackId: string | null = null;
   private previousDriversCount = 0;
   private previousConnectedDrivers = new Map<string, string>(); // driverName -> carModel
   private lastAlertTimestamp = 0;
@@ -127,48 +125,14 @@ export class MonitorService {
       // Ignorar error si no se tienen permisos para ver historial
     }
 
-    const currentTrackId = status.online
-      ? `${status.trackName}_${status.trackConfig || ''}`
-      : null;
+    const payload = await buildServerStatusMessagePayload(status);
 
     if (this.statusMessageId) {
       try {
         const existingMessage = await textChannel.messages.fetch(
           this.statusMessageId
         );
-
-        const existingAttachment = existingMessage.attachments.first();
-        const existingImageUrl =
-          existingMessage.embeds[0]?.image?.url || existingAttachment?.url;
-
-        // Si el circuito no cambió y el mensaje ya cuenta con imagen cargada,
-        // reutilizamos la imagen existente para evitar parpadeo y recarga en Discord.
-        const canReuseExistingImage =
-          Boolean(currentTrackId) &&
-          this.lastTrackId === currentTrackId &&
-          Boolean(existingImageUrl);
-
-        if (canReuseExistingImage) {
-          const payload = await buildServerStatusMessagePayload(status, {
-            existingImageUrl: existingImageUrl!,
-          });
-
-          await existingMessage.edit({
-            embeds: payload.embeds,
-            components: payload.components,
-            attachments: existingAttachment
-              ? [{ id: existingAttachment.id }]
-              : [],
-          });
-
-          await this.savePersistedState();
-          return;
-        }
-
-        // Si el circuito cambió (o no tenía imagen previa), generamos y adjuntamos la nueva imagen
-        const payload = await buildServerStatusMessagePayload(status);
         await existingMessage.edit(payload);
-        this.lastTrackId = currentTrackId;
         await this.savePersistedState();
         return;
       } catch (err: any) {
@@ -187,11 +151,9 @@ export class MonitorService {
       }
     }
 
-    const payload = await buildServerStatusMessagePayload(status);
     try {
       const newMessage = await textChannel.send(payload);
       this.statusMessageId = newMessage.id;
-      this.lastTrackId = currentTrackId;
       await this.savePersistedState();
     } catch (error) {
       console.error('❌ Error al publicar el mensaje de estado en Discord:', error);
@@ -468,9 +430,6 @@ export class MonitorService {
       if (data.lastResultFile) {
         this.lastResultFile = data.lastResultFile;
       }
-      if (data.lastTrackId) {
-        this.lastTrackId = data.lastTrackId;
-      }
       if (data.connectedDrivers) {
         this.previousConnectedDrivers = new Map(
           Object.entries(data.connectedDrivers)
@@ -487,7 +446,6 @@ export class MonitorService {
       const state: PersistedBotState = {
         statusMessageId: this.statusMessageId ?? undefined,
         lastResultFile: this.lastResultFile ?? undefined,
-        lastTrackId: this.lastTrackId ?? undefined,
         connectedDrivers: Object.fromEntries(this.previousConnectedDrivers),
       };
       await writeFile(STATE_FILE_PATH, JSON.stringify(state, null, 2), 'utf-8');

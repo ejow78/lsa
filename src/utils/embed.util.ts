@@ -23,20 +23,11 @@ export interface MessagePayloadResult {
   files?: AttachmentBuilder[];
 }
 
-export interface ServerStatusPayloadOptions {
-  /**
-   * Si se provee una URL de imagen ya existente (por ejemplo de un mensaje anterior en Discord),
-   * se utiliza directamente en el embed sin volver a procesar ni generar un nuevo archivo adjunto.
-   */
-  existingImageUrl?: string;
-}
-
 /**
  * Construye el Embed principal del estado del servidor y la fila de botones interactivos.
  */
 export async function buildServerStatusMessagePayload(
-  status: ServerLiveStatus,
-  options?: ServerStatusPayloadOptions
+  status: ServerLiveStatus
 ): Promise<MessagePayloadResult> {
   const buttonJoinUrl = emperorService.getContentManagerJoinButtonUrl();
   const liveTimingWebUrl = emperorService.getLiveTimingWebUrl();
@@ -140,9 +131,7 @@ export async function buildServerStatusMessagePayload(
   }
 
   let files: AttachmentBuilder[] | undefined;
-  if (options?.existingImageUrl) {
-    embed.setImage(options.existingImageUrl);
-  } else if (status.trackLayoutUrl) {
+  if (status.trackLayoutUrl) {
     const mapAttachment = await trackMapService.getHorizontalTrackMapAttachment(
       status.trackLayoutUrl,
       `${status.trackName}_${status.trackConfig || ''}`
