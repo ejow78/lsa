@@ -127,19 +127,6 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
       box-shadow: 0 0 0 1px rgba(160, 210, 255, .6) inset, 0 8px 40px rgba(35, 140, 230, .55);
       transform: translateY(-1px);
     }
-    .pill.red {
-      background: linear-gradient(180deg, #f0402f, #b5150c);
-      box-shadow: 0 0 0 1px rgba(255, 150, 130, .35) inset, 0 8px 30px rgba(227, 38, 27, .35);
-    }
-    .pill.ghost {
-      background: transparent;
-      box-shadow: 0 0 0 1px var(--wire) inset;
-      color: var(--ink);
-    }
-    .pill.ghost:hover {
-      box-shadow: 0 0 0 1px var(--cyan) inset;
-      color: #fff;
-    }
 
     /* Etiqueta Kick con línea delante */
     .kick {
@@ -159,69 +146,25 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
     }
 
     /* Cabecera y Menús */
-    .site-nav-menu a, .site-nav-menu button {
+    .site-nav-menu a, .site-nav-menu button, .site-nav-menu span {
       font: 600 13.5px var(--display);
       letter-spacing: .08em;
       text-transform: uppercase;
-      color: var(--mute);
       padding: 10px 14px;
       display: inline-flex;
       align-items: center;
       gap: 6px;
       transition: color 0.15s;
     }
-    .site-nav-menu a:hover, .site-nav-menu button:hover {
+    .site-nav-menu a {
+      color: var(--mute);
+    }
+    .site-nav-menu a:hover {
       color: #fff;
     }
     .site-nav-menu .cur-page {
       color: #fff !important;
       box-shadow: inset 0 -2px 0 var(--red) !important;
-    }
-
-    /* Dropdown de Campeonatos */
-    .nav-drop {
-      display: none;
-      position: absolute;
-      left: 0;
-      top: 100%;
-      min-width: 280px;
-      background: var(--deck);
-      border: 1px solid var(--wire);
-      padding: 8px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
-      z-index: 50;
-    }
-    .nav-has-drop:hover .nav-drop, .nav-has-drop:focus-within .nav-drop {
-      display: block;
-    }
-    .nav-drop a {
-      display: grid !important;
-      grid-template-columns: auto 1fr;
-      gap: 2px 12px;
-      padding: 12px !important;
-      color: var(--ink) !important;
-      text-transform: none !important;
-      letter-spacing: 0 !important;
-      border-radius: 4px;
-    }
-    .nav-drop a:hover {
-      background: rgba(35, 182, 224, 0.08);
-    }
-    .nav-drop a b {
-      font: 700 italic 16px var(--display);
-      text-transform: uppercase;
-      grid-row: span 2;
-      align-self: center;
-      color: #fff;
-    }
-    .nav-drop a span {
-      font-size: 13px;
-      color: var(--mute);
-    }
-    .nav-drop a i {
-      font-style: normal;
-      font-size: 11.5px;
-      color: var(--cyan);
     }
 
     /* Social circle buttons */
@@ -374,10 +317,8 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
         <span class="hidden md:inline text-lsa-wire">|</span>
         <span class="hidden md:inline">Circuito: <strong id="top-track-name" class="text-lsa-cyan">—</strong></span>
       </div>
-      <div class="flex items-center gap-4 font-mono text-[11.5px]">
-        <span>Ambiente: <strong id="top-ambient" class="text-lsa-gold">--°C</strong></span>
-        <span>Pista: <strong id="top-road" class="text-lsa-gold">--°C</strong></span>
-        <span>Contraseña: <button onclick="copyServerPassword()" class="text-lsa-cyan hover:underline font-bold" id="top-pass" title="Click para copiar contraseña">LaTaM2026</button></span>
+      <div class="flex items-center gap-2 font-mono text-[11.5px] text-lsa-mute">
+        <span>Assetto Corsa Server</span>
       </div>
     </div>
   </div>
@@ -398,51 +339,36 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
         </a>
       </div>
 
-      <!-- MENÚ DE NAVEGACIÓN PRINCIPAL (Alineado con latamsimracing.com) -->
-      <nav class="hidden lg:flex items-center gap-1 site-nav-menu">
-        <a href="https://latamsimracing.com/">Inicio</a>
-        
-        <!-- Desplegable Campeonatos -->
-        <div class="relative nav-has-drop">
-          <button type="button">
-            Campeonatos <i data-lucide="chevron-down" class="w-3.5 h-3.5 opacity-70"></i>
-          </button>
-          <div class="nav-drop cut">
-            <a href="https://latamsimracing.com/campeonato-gt3-2026/">
-              <b>GT3</b>
-              <span>Campeonato GT3 2026</span>
-              <i>Assetto Corsa Competizione ›</i>
-            </a>
-            <a href="https://latamsimracing.com/campeonato-ginetta-gt4/">
-              <b>GT4</b>
-              <span>Ginetta GT4 Cup</span>
-              <i>Assetto Corsa ›</i>
-            </a>
-          </div>
-        </div>
-
-        <!-- Live Timing (Página actual activa con punto rojo pulsante) -->
+      <!-- NAVBAR LIMPIA: ASSETTO CORSA (ACTIVO) Y ASSETTO CORSA COMPETIZIONE (PRÓXIMAMENTE) -->
+      <nav class="hidden md:flex items-center gap-2 site-nav-menu">
+        <!-- Live Timing Assetto Corsa (Activo con punto rojo pulsante) -->
         <a href="/" class="cur-page" aria-current="page">
-          <span class="relative flex h-2 w-2 mr-1">
+          <span class="relative flex h-2 w-2 mr-1.5">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-lsa-red"></span>
           </span>
-          Live Timing
+          Assetto Corsa
         </a>
 
-        <a href="https://latamsimracing.com/reglamento/">Reglamento</a>
+        <!-- Assetto Corsa Competizione (Próximamente) -->
+        <span class="inline-flex items-center gap-2 text-lsa-mute font-display uppercase tracking-wider text-[13px] opacity-60 cursor-default select-none">
+          Assetto Corsa Competizione
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-lsa-gold/15 text-lsa-gold border border-lsa-gold/30">
+            Próximamente
+          </span>
+        </span>
       </nav>
 
-      <!-- ACCIONES: BOTÓN 1-CLICK Y REDES SOCIALES -->
+      <!-- ACCIONES: BOTÓN 1-CLICK (SOLO DESKTOP) Y REDES SOCIALES (EN MÓVIL Y DESKTOP) -->
       <div class="flex items-center gap-3">
-        <!-- Botón Entrar a Pista (Content Manager) -->
-        <a id="btn-join-cm" href="https://acstuff.club/s/q:race/online/join?ip=24.152.39.252&httpPort=8520&password=flV6UHgAHgEP" class="pill" title="Entrar a Pista directamente con Content Manager">
+        <!-- Botón Entrar a Pista (Oculto en móvil, visible en sm:) -->
+        <a id="btn-join-cm" href="https://acstuff.club/s/q:race/online/join?ip=24.152.39.252&httpPort=8520&password=flV6UHgAHgEP" class="hidden sm:inline-flex pill" title="Entrar a Pista directamente con Content Manager">
           <i data-lucide="zap" class="w-4 h-4 text-amber-300"></i>
           <span>Entrar a Pista</span>
         </a>
 
-        <!-- Redes Sociales -->
-        <div class="hidden sm:flex items-center gap-1.5 pl-2 border-l border-lsa-wire">
+        <!-- Redes Sociales Oficiales (Visibles siempre, tanto en móvil como en desktop) -->
+        <div class="flex items-center gap-2 pl-1 sm:pl-2 sm:border-l sm:border-lsa-wire">
           <a href="https://discord.gg/V9hq2EBSA" target="_blank" rel="noopener" class="soc-btn" title="Discord Oficial LSA">
             <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
           </a>
@@ -472,8 +398,8 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
             <span id="live-location-badge" class="px-2.5 py-0.5 text-xs font-medium bg-lsa-deck text-lsa-mute border border-lsa-wire">
               Cargando ubicación...
             </span>
-            <span id="live-length-badge" class="px-2.5 py-0.5 text-xs font-mono bg-lsa-deck text-lsa-mute border border-lsa-wire">
-              -- m
+            <span id="live-length-badge" class="px-2.5 py-0.5 text-xs font-mono bg-lsa-deck text-lsa-mute border border-lsa-wire" title="Longitud del trazado">
+              -- km
             </span>
           </div>
 
@@ -481,27 +407,36 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
             Conectando con el <span class="tri-word">SERVIDOR</span>
           </h1>
 
-          <div class="flex flex-wrap items-center gap-6 text-xs text-lsa-mute pt-1">
-            <span class="flex items-center gap-2">
+          <!-- DETALLES: CLIMA (AMBIENTE / PISTA), TIEMPO RESTANTE, PILOTOS, VUELTA RÁPIDA, INCIDENTES -->
+          <div class="flex flex-wrap items-center gap-5 text-xs text-lsa-mute pt-1">
+            <!-- CLIMA COLOCADO DEBAJO DEL NOMBRE DEL CIRCUITO -->
+            <span class="flex items-center gap-1.5 text-lsa-ink">
+              <i data-lucide="thermometer" class="w-4 h-4 text-lsa-gold"></i>
+              Clima: <strong id="live-ambient" class="font-mono text-white">--°C</strong> Ambiente / <strong id="live-road" class="font-mono text-lsa-gold">--°C</strong> Pista
+            </span>
+
+            <span class="text-lsa-wire">|</span>
+
+            <span class="flex items-center gap-1.5">
               <i data-lucide="clock" class="w-4 h-4 text-lsa-cyan"></i>
               Tiempo Restante: <strong id="live-remaining" class="font-mono text-white text-base font-bold">--:--</strong>
             </span>
-            <span class="flex items-center gap-2">
+            <span class="flex items-center gap-1.5">
               <i data-lucide="users" class="w-4 h-4 text-lsa-cyan"></i>
               Pilotos en Pista: <strong id="live-drivers-count" class="font-mono text-white text-sm">0</strong>
             </span>
-            <span class="flex items-center gap-2">
+            <span class="flex items-center gap-1.5">
               <i data-lucide="zap" class="w-4 h-4 text-lsa-violet"></i>
               Vuelta Rápida: <strong id="live-fastest-session" class="font-mono text-lsa-violet text-sm">—</strong>
             </span>
-            <span class="flex items-center gap-2">
+            <span class="flex items-center gap-1.5">
               <i data-lucide="alert-triangle" class="w-4 h-4 text-lsa-red"></i>
               Incidentes: <strong id="live-incidents-total" class="font-mono text-lsa-gold text-sm">0</strong>
             </span>
           </div>
         </div>
 
-        <!-- Session Status Pill & Clock -->
+        <!-- Session Status Pill & Clock (SIN SEGUNDOS) -->
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 font-mono text-xs text-lsa-mute">
           <!-- LIVE TRACK FLAG BANNER -->
           <div id="header-flag-banner" class="flex items-center gap-2.5 px-4 py-2 border bg-emerald-500/10 border-emerald-500/30 text-emerald-400 transition-all">
@@ -511,7 +446,7 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
             </div>
           </div>
           <div class="bg-lsa-deck/90 border border-lsa-wire px-3.5 py-2">
-            <span>Hora: <strong id="live-updated-clock" class="text-white">--:--:--</strong></span>
+            <span>Hora: <strong id="live-updated-clock" class="text-white">--:--</strong></span>
           </div>
         </div>
       </div>
@@ -520,13 +455,18 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
     <!-- MAIN TWO-COLUMN LAYOUT -->
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
 
-      <!-- COLUMNA IZQUIERDA: MAPA GPS EN VIVO + CHAT DEL JUEGO / LOGS -->
+      <!-- COLUMNA IZQUIERDA: RADAR EN TIEMPO REAL + CHAT DEL JUEGO / LOGS -->
       <div class="xl:col-span-5 flex flex-col gap-6">
 
-        <!-- MAPA GPS EN VIVO -->
+        <!-- RADAR EN TIEMPO REAL -->
         <div class="lsa-panel cut p-4 flex flex-col">
           <div class="flex items-center justify-between pb-3 mb-2 border-b border-lsa-wire">
-            <div class="kick">RADAR GPS EN TIEMPO REAL</div>
+            <div>
+              <div class="kick">TELEMETRÍA GPS</div>
+              <h3 class="font-display italic font-bold text-lg text-white uppercase flex items-center gap-2">
+                <span class="text-lsa-red">›</span> RADAR <span class="tri-word">EN TIEMPO REAL</span>
+              </h3>
+            </div>
             <span class="text-xs font-mono text-lsa-mute">Assetto Corsa</span>
           </div>
 
@@ -691,13 +631,12 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
           class="h-[34px] w-auto mix-blend-lighten object-contain"
           onerror="this.src='/logo.png'"
         />
-        <span>© 2026 LATAM SimRacing Alliance · Telemetría Oficial y Live Timing</span>
+        <span>© 2026 LATAM SimRacing Alliance</span>
       </div>
       <div class="flex flex-wrap items-center gap-5 font-display uppercase tracking-wider text-[12px]">
-        <a href="https://latamsimracing.com/" class="hover:text-white transition-colors">Web Oficial</a>
+        <a href="https://latamsimracing.com/" target="_blank" rel="noopener" class="hover:text-white transition-colors">Web Oficial</a>
         <a href="https://discord.gg/V9hq2EBSA" target="_blank" rel="noopener" class="hover:text-white transition-colors">Discord</a>
         <a href="https://www.instagram.com/latam_simracing_alliance/" target="_blank" rel="noopener" class="hover:text-white transition-colors">Instagram</a>
-        <a href="https://latamsimracing.com/reglamento/" class="hover:text-white transition-colors">Reglamento Deportivo</a>
       </div>
     </div>
   </footer>
@@ -728,18 +667,6 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
       if (g === 'R') return 'bg-[#E3261B] text-white';
       if (g === 'N') return 'bg-[#F2B92B] text-slate-950 font-bold';
       return 'bg-lsa-cyan text-slate-950 font-black';
-    }
-
-    function copyServerPassword() {
-      const pass = (currentState && currentState.password) || 'LaTaM2026';
-      navigator.clipboard.writeText(pass).then(() => {
-        const topPass = document.getElementById('top-pass');
-        if (topPass) {
-          const prev = topPass.textContent;
-          topPass.textContent = '¡Copiada!';
-          setTimeout(() => { topPass.textContent = prev; }, 1500);
-        }
-      });
     }
 
     function adjustMapZoom(delta) {
@@ -817,10 +744,14 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
       // Header & top telemetry
       document.getElementById('top-server-name').textContent = state.serverName || 'Servidor Oficial';
       document.getElementById('top-track-name').textContent = (state.trackTitle || state.trackId || 'Circuito') + (state.trackLayout ? ' (' + state.trackLayout + ')' : '');
-      document.getElementById('top-ambient').textContent = (state.ambientTemp || 20) + '°C';
-      document.getElementById('top-road').textContent = (state.roadTemp || 26) + '°C';
 
-      // Join button URL
+      // Clima debajo del nombre del circuito
+      const ambientEl = document.getElementById('live-ambient');
+      const roadEl = document.getElementById('live-road');
+      if (ambientEl) ambientEl.textContent = (state.ambientTemp ?? 20) + '°C';
+      if (roadEl) roadEl.textContent = (state.roadTemp ?? 26) + '°C';
+
+      // Join button URL (solo visible en desktop)
       const joinBtn = document.getElementById('btn-join-cm');
       if (joinBtn && state.joinUrl) {
         joinBtn.href = state.joinUrl;
@@ -829,8 +760,18 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
       // Hero banner
       document.getElementById('live-session-badge').textContent = state.sessionType || 'Práctica';
       document.getElementById('live-location-badge').textContent = [state.trackCity, state.trackCountry].filter(Boolean).join(', ') || 'En línea';
-      document.getElementById('live-length-badge').textContent = state.trackLength || '-- m';
       
+      // Formatear longitud de pista (ej: 3703 m -> 3.7 km)
+      const lengthBadge = document.getElementById('live-length-badge');
+      if (lengthBadge) {
+        const rawMeters = parseInt(state.trackLength, 10);
+        if (!isNaN(rawMeters) && rawMeters > 0) {
+          lengthBadge.textContent = rawMeters >= 1000 ? (rawMeters / 1000).toFixed(1) + ' km' : rawMeters + ' m';
+        } else {
+          lengthBadge.textContent = state.trackLength || '-- m';
+        }
+      }
+
       const trackTitleEl = document.getElementById('live-track-title');
       if (trackTitleEl) {
         const titleText = (state.trackTitle || state.trackId || 'Circuito en vivo').toUpperCase();
@@ -839,7 +780,12 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
 
       document.getElementById('live-drivers-count').textContent = state.drivers ? state.drivers.length : 0;
       document.getElementById('live-incidents-total').textContent = state.collisions ? state.collisions.length : 0;
-      document.getElementById('live-updated-clock').textContent = new Date().toLocaleTimeString();
+      
+      // Hora sin segundos (ej: 20:30)
+      const clockEl = document.getElementById('live-updated-clock');
+      if (clockEl) {
+        clockEl.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
 
       const mapImg = document.getElementById('map-img');
       if (state.mapImageUrl && mapImg.src !== state.mapImageUrl) {
