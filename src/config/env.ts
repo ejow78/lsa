@@ -21,7 +21,7 @@ const envSchema = z.object({
     .string()
     .url()
     .optional()
-    .default('https://br.assettohosting.com:10520/live-timing'),
+    .default('https://live.latamsimracing.com'),
   STATUS_CHANNEL_ID: z.string().default('1564808711883464805'),
   ALERT_CHANNEL_ID: z.string().default('1564808847267467395'),
   ALERT_ROLE_ID: z.string().default('1529968757131186308'),
