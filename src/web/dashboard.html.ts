@@ -1017,8 +1017,12 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
               \${d.numLaps || 0}
             </td>
             <td class="py-2 px-2 font-mono text-xs text-white whitespace-nowrap">
-              <span>\${d.speedKmh}</span> <span class="text-[10px] text-slate-500">km/h</span>
-              <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold \${gearColor}">\${gDisplay}</span>
+              <div class="flex items-center gap-1.5">
+                <span class="inline-block w-[64px] text-right font-mono">
+                  <span>\${d.speedKmh}</span> <span class="text-[10px] text-slate-500">km/h</span>
+                </span>
+                <span class="inline-block w-5 text-center py-0.5 rounded text-[10px] font-mono font-bold shrink-0 \${gearColor}">\${gDisplay}</span>
+              </div>
             </td>
             <td class="py-2 px-2 text-center whitespace-nowrap min-w-[90px]">
               \${isPits
