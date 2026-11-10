@@ -553,17 +553,17 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
             <table class="w-full text-left border-collapse">
               <thead>
                 <tr class="border-b border-lsa-wire text-[11px] font-display font-semibold uppercase tracking-wider text-lsa-mute">
-                  <th class="py-2.5 px-2 text-center">Pos</th>
-                  <th class="py-2.5 px-2">Piloto</th>
-                  <th class="py-2.5 px-2 text-center">Marcha</th>
-                  <th class="py-2.5 px-2">Vehículo</th>
-                  <th class="py-2.5 px-2">Compuesto</th>
-                  <th class="py-2.5 px-2">Mejor Vuelta</th>
-                  <th class="py-2.5 px-2">Delta</th>
-                  <th class="py-2.5 px-2">Última</th>
-                  <th class="py-2.5 px-2 text-center">Vtas</th>
-                  <th class="py-2.5 px-2">Velocidad</th>
-                  <th class="py-2.5 px-2 text-center">Estado</th>
+                  <th class="py-2.5 px-2 text-center whitespace-nowrap">Pos</th>
+                  <th class="py-2.5 px-2 whitespace-nowrap">Piloto</th>
+                  <th class="py-2.5 px-2 text-center whitespace-nowrap">Marcha</th>
+                  <th class="py-2.5 px-2 whitespace-nowrap">Vehículo</th>
+                  <th class="py-2.5 px-2 whitespace-nowrap">Compuesto</th>
+                  <th class="py-2.5 px-2 whitespace-nowrap">Mejor Vuelta</th>
+                  <th class="py-2.5 px-2 whitespace-nowrap">Delta</th>
+                  <th class="py-2.5 px-2 whitespace-nowrap">Última</th>
+                  <th class="py-2.5 px-2 text-center whitespace-nowrap">Vtas</th>
+                  <th class="py-2.5 px-2 whitespace-nowrap">Velocidad</th>
+                  <th class="py-2.5 px-2 text-center whitespace-nowrap min-w-[95px]">Estado</th>
                 </tr>
               </thead>
               <tbody id="live-drivers-tbody" class="divide-y divide-lsa-wire/70 text-sm">
@@ -958,47 +958,47 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
 
         html += \`
           <tr class="hover:bg-white/[0.03] transition-colors">
-            <td class="py-2.5 px-2 text-center">
+            <td class="py-2.5 px-2 text-center whitespace-nowrap">
               \${posBadge}
             </td>
-            <td class="py-2.5 px-2">
+            <td class="py-2.5 px-2 whitespace-nowrap">
               <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full" style="background:\${driverColor};"></span>
+                <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:\${driverColor};"></span>
                 <span class="font-bold text-white">\${escapeHtml(d.name)}</span>
                 <span class="text-xs text-lsa-mute font-mono">#\${d.raceNumber ?? '0'}</span>
               </div>
             </td>
-            <td class="py-2.5 px-2 text-center">
+            <td class="py-2.5 px-2 text-center whitespace-nowrap">
               <span class="px-2 py-0.5 rounded text-xs font-mono font-bold \${gearColor}">
                 \${gDisplay}
               </span>
             </td>
-            <td class="py-2.5 px-2 text-xs text-slate-300 max-w-[140px] truncate" title="\${escapeHtml(d.carName)}">
+            <td class="py-2.5 px-2 text-xs text-slate-300 max-w-[160px] truncate whitespace-nowrap" title="\${escapeHtml(d.carName)}">
               \${escapeHtml(d.carName)}
             </td>
-            <td class="py-2.5 px-2 text-xs font-mono text-lsa-mute">
+            <td class="py-2.5 px-2 text-xs font-mono text-lsa-mute whitespace-nowrap">
               \${escapeHtml(d.tyres || '—')}
             </td>
-            <td class="py-2.5 px-2 font-mono text-xs font-bold \${isFastestInSession ? 'text-lsa-violet' : (d.bestLapMs > 0 ? 'text-emerald-400' : 'text-slate-500')}">
+            <td class="py-2.5 px-2 font-mono text-xs font-bold whitespace-nowrap \${isFastestInSession ? 'text-lsa-violet' : (d.bestLapMs > 0 ? 'text-emerald-400' : 'text-slate-500')}">
               \${escapeHtml(d.bestLapFormatted)}
               \${isFastestInSession ? '<span class="ml-1 text-[10px] px-1 py-0.2 rounded bg-purple-500/20 text-lsa-violet uppercase">VR</span>' : ''}
             </td>
-            <td class="py-2.5 px-2 font-mono text-xs text-lsa-mute">
+            <td class="py-2.5 px-2 font-mono text-xs text-lsa-mute whitespace-nowrap">
               \${escapeHtml(d.deltaToBestFormatted || '0.000s')}
             </td>
-            <td class="py-2.5 px-2 font-mono text-xs text-slate-300">
+            <td class="py-2.5 px-2 font-mono text-xs text-slate-300 whitespace-nowrap">
               \${escapeHtml(d.lastLapFormatted)}
             </td>
-            <td class="py-2.5 px-2 font-mono text-xs text-center text-slate-300">
+            <td class="py-2.5 px-2 font-mono text-xs text-center text-slate-300 whitespace-nowrap">
               \${d.numLaps || 0}
             </td>
-            <td class="py-2.5 px-2 font-mono text-xs text-white">
+            <td class="py-2.5 px-2 font-mono text-xs text-white whitespace-nowrap">
               \${d.speedKmh} <span class="text-[10px] text-slate-500">km/h</span>
             </td>
-            <td class="py-2.5 px-2 text-center">
+            <td class="py-2.5 px-2 text-center whitespace-nowrap min-w-[95px]">
               \${isPits
-                ? '<span class="px-2 py-0.5 text-[10px] font-mono font-bold bg-[#F2B92B]/15 text-[#F2B92B] border border-[#F2B92B]/30">EN BOXES</span>'
-                : '<span class="px-2 py-0.5 text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">EN PISTA</span>'
+                ? '<span class="inline-block whitespace-nowrap px-2.5 py-0.5 text-[10px] font-mono font-bold tracking-wider rounded bg-[#F2B92B]/15 text-[#F2B92B] border border-[#F2B92B]/30">EN BOXES</span>'
+                : '<span class="inline-block whitespace-nowrap px-2.5 py-0.5 text-[10px] font-mono font-bold tracking-wider rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">EN PISTA</span>'
               }
             </td>
           </tr>
