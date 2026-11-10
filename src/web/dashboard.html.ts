@@ -60,6 +60,7 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
       --display: "Chakra Petch", "Arial Narrow", Arial, sans-serif;
       --body: "Saira", "Segoe UI", Roboto, Arial, sans-serif;
       --cut: 16px;
+      --car-trans: 0.35s;
     }
 
     body {
@@ -253,7 +254,7 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
       position: absolute;
       width: 0;
       height: 0;
-      transition: left 780ms linear, top 780ms linear;
+      transition: left var(--car-trans) linear, top var(--car-trans) linear;
       will-change: left, top;
       z-index: 20;
       pointer-events: none;
@@ -801,6 +802,12 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
         heroBg.style.backgroundImage = 'url("' + state.previewImageUrl + '")';
       }
 
+      // Sincronizar velocidad de transición del radar con el intervalo real del servidor
+      if (state.realtimePosIntervalMs && state.realtimePosIntervalMs >= 50) {
+        const transSec = Math.max(0.15, Math.min(0.55, state.realtimePosIntervalMs / 1000)).toFixed(2);
+        document.documentElement.style.setProperty('--car-trans', transSec + 's');
+      }
+
       // Fastest Lap in session
       const validLaps = (state.storedTimes || [])
         .filter(t => t.bestLapMs > 0)
@@ -894,6 +901,11 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
           \`;
           overlay.appendChild(markerEl);
           displayedMarkersMap.set(d.guid, markerEl);
+          markerEl.style.left = pctX.toFixed(3) + '%';
+          markerEl.style.top = pctY.toFixed(3) + '%';
+          markerEl._lastX = pctX;
+          markerEl._lastY = pctY;
+          markerEl._lastPits = d.isInPits;
         } else {
           const posEl = markerEl.querySelector('.marker-pos');
           const gearEl = markerEl.querySelector('.marker-gear');
@@ -912,10 +924,28 @@ export const DASHBOARD_HTML = `<!DOCTYPE html>
             dotEl.style.backgroundColor = dotColor;
             dotEl.style.color = dotColor;
           }
-        }
 
-        markerEl.style.left = pctX.toFixed(3) + '%';
-        markerEl.style.top = pctY.toFixed(3) + '%';
+          // Anti-warp: Si el auto se teletransporta (entra/sale de pits o resetea a box), reposicionar instantáneo sin transición
+          const prevX = markerEl._lastX !== undefined ? markerEl._lastX : pctX;
+          const prevY = markerEl._lastY !== undefined ? markerEl._lastY : pctY;
+          const dist = Math.hypot(pctX - prevX, pctY - prevY);
+          const pitChanged = markerEl._lastPits !== undefined && markerEl._lastPits !== d.isInPits;
+
+          if (dist > 8 || pitChanged) {
+            markerEl.style.transition = 'none';
+            markerEl.style.left = pctX.toFixed(3) + '%';
+            markerEl.style.top = pctY.toFixed(3) + '%';
+            void markerEl.offsetHeight; // forzar reflow
+            markerEl.style.transition = '';
+          } else {
+            markerEl.style.left = pctX.toFixed(3) + '%';
+            markerEl.style.top = pctY.toFixed(3) + '%';
+          }
+
+          markerEl._lastX = pctX;
+          markerEl._lastY = pctY;
+          markerEl._lastPits = d.isInPits;
+        }
       }
 
       // Remove disconnected drivers

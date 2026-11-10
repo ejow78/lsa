@@ -489,9 +489,9 @@ export class LiveTimingService {
     const w = width > 0 ? width : 1600;
     const h = height > 0 ? height : 1600;
 
-    // Exact Emperor formula: ((worldCoord + offset) / scaleFactor + padding)
-    const pixelX = (worldX + offsetX) / scale + padding;
-    const pixelY = (worldZ + offsetY) / scale + padding;
+    // Exact Emperor formula: (worldCoord + offset) / scaleFactor
+    const pixelX = (worldX + offsetX) / scale;
+    const pixelY = (worldZ + offsetY) / scale;
 
     const percentX = Math.max(0, Math.min(100, (pixelX / w) * 100));
     const percentY = Math.max(0, Math.min(100, (pixelY / h) * 100));
