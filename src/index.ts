@@ -4,8 +4,6 @@ import { registerReadyEvent } from './events/ready.event.js';
 import { registerInteractionCreateEvent } from './events/interactionCreate.event.js';
 import { registerGuildMemberAddEvent } from './events/guildMemberAdd.event.js';
 import { registerReactionEvents } from './events/messageReaction.event.js';
-import { startWebServer } from './web/server.js';
-import { liveTimingService } from './services/livetiming.service.js';
 
 const client = new Client({
   intents: [
@@ -22,13 +20,9 @@ registerInteractionCreateEvent(client);
 registerGuildMemberAddEvent(client);
 registerReactionEvents(client);
 
-const webServer = startWebServer(client);
-
 const shutdown = (signal: string) => {
-  console.log(`\nRecibida señal ${signal}. Cerrando el bot y servidor web...`);
+  console.log(`\nRecibida señal ${signal}. Cerrando el bot de Discord...`);
   getMonitorService()?.stop();
-  liveTimingService.stop();
-  webServer.close();
   client.destroy();
   process.exit(0);
 };

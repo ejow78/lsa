@@ -1024,7 +1024,10 @@ export class EmperorService {
       ? `${env.EMPEROR_IP_OR_DOMAIN}:${env.EMPEROR_HTTP_PORT}`
       : `http://${env.EMPEROR_IP_OR_DOMAIN}:${env.EMPEROR_HTTP_PORT}`;
 
+    const emperorWebBase = env.EMPEROR_WEB_URL ? env.EMPEROR_WEB_URL.replace(/\/+$/, '') : '';
+
     const candidateEndpoints = [
+      ...(emperorWebBase ? [`${emperorWebBase}/public/live.json`] : []),
       `${baseUrl}/api/details`,
       `${baseUrl}/live-timings.json`,
       `${baseUrl}/INFO`,
@@ -1042,8 +1045,35 @@ export class EmperorService {
           continue;
         }
 
-        const data = (await response.json()) as RawEmperorLiveTimings;
+        const data = (await response.json()) as any;
         if (!data) continue;
+
+        if (url.endsWith('/public/live.json')) {
+          const rawTransformed: RawEmperorLiveTimings = {
+            ServerName: data.trackName || data.session?.trackName || 'LATAM Simracing Alliance',
+            Track: data.session?.track || data.trackKey || '',
+            TrackConfig: data.session?.layout || '',
+            SessionType: data.session?.type || 'Práctica',
+            TimeLeft: data.session?.timeLeftSec ?? 0,
+            ambientTemperature: data.session?.ambient,
+            roadTemperature: data.session?.road,
+            clients: data.session?.clients ?? 0,
+            maxclients: data.session?.slots ?? 19,
+            Cars: (data.players || []).map((p: any) => ({
+              DriverName: p.name,
+              CarModel: p.model,
+              CarInfo: {
+                DriverName: p.name,
+                CarModel: p.model,
+                CarName: p.modelName,
+                IsConnected: p.status !== 'gone',
+              },
+              Skin: p.skinName,
+              IsConnected: p.status !== 'gone',
+            })),
+          };
+          return rawTransformed;
+        }
 
         // Si es servidor nativo (/INFO) o no tiene detalles de coches conectados, consultar /ENTRY
         if (url.endsWith('/INFO') || (!data.Cars && !data.ConnectedDrivers && !data.players)) {
